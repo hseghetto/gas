@@ -119,7 +119,7 @@ tf.executing_eagerly()
 
 last=3
 
-seed=3
+seed=6
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
@@ -224,6 +224,7 @@ for k in range(len(s)):
 #-------------------Predictions---------------------------
 a=pd.read_csv("data/gas_quinto_caso_alterado.txt",sep=" ")
 a=a.to_numpy()
+a=a[0:150]
 
 if(squareP==True):
     for i in range(len(a)):
@@ -276,8 +277,8 @@ mae=np.zeros(len(predict_target))
 mape=np.zeros(len(predict_target))
 
 for i in range(1,len(predict_data)):
-    mse[i]=np.square(predict_data[i,0,1]-predict_target[i-1])
-    mae[i]=np.abs(predict_data[i,0,1]-predict_target[i-1])
+    mse[i]=np.square(predict_data[i,0,1]/300-predict_target[i-1])
+    mae[i]=np.abs(predict_data[i,0,1]/300-predict_target[i-1])
     mape[i]=mae[i]/predict_target[i-1]*100
 
 print(np.max(mse))
@@ -291,7 +292,7 @@ bourdet=np.zeros((len(predict_target),3))
 bourdet[0][0]=300-predict_data[0][0][1]
 for i in range(1,len(predict_data)-last+1):
     bourdet[i][0]=300-predict_data[i][0][1]
-    bourdet[i][1]=np.abs((bourdet[i][0]-bourdet[i-1][0])/np.log(time[i+last-1][0]/time[i+last-2][0]))
+    bourdet[i][1]=np.abs((bourdet[i][0]-bourdet[i-1][0])/np.log(time[i+last-1][-1]/time[i+last-2][-1]))
     
 plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
 plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[1] for j in bourdet[0:len(bourdet)]],c="red")
