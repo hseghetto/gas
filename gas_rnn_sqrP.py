@@ -123,13 +123,13 @@ seed=3
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
-time=pd.read_csv("time.txt",sep=" ")
+time=pd.read_csv("data/time.txt",sep=" ")
 time=time.to_numpy()
 
-#a=pd.read_csv("gas_terceiro_caso_interpolado.txt",sep=" ",usecols=[0,1,2])
-#a=pd.read_csv("gas_segundo_caso_variavel.txt",sep=" ")
-a=pd.read_csv("gas_terceiro_caso_variavel.txt",sep=" ")
-#a=pd.read_csv("gas_quarto_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_terceiro_caso_interpolado.txt",sep=" ",usecols=[0,1,2])
+#a=pd.read_csv("data/gas_segundo_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_quarto_caso_variavel.txt",sep=" ")
 
 a=a.to_numpy()
 
@@ -198,7 +198,7 @@ print(hist.tail(1))
 
 modelGraphs(hist)
 
-s=["gas_primeiro_caso_variavel.txt","gas_segundo_caso_variavel.txt","gas_terceiro_caso_variavel.txt","gas_quarto_caso_variavel.txt","gas_quinto_caso_variavel.txt"]
+s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
 for k in range(len(s)):    
     a=pd.read_csv(s[k],sep=" ")    
     a=a.to_numpy()
@@ -222,7 +222,7 @@ for k in range(len(s)):
     resultGraphs(prediction)
 
 #-------------------Predictions---------------------------
-a=pd.read_csv("gas_quinto_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_quinto_caso_variavel.txt",sep=" ")
 a=a.to_numpy()
 
 if(squareP==True):
