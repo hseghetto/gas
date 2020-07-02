@@ -126,9 +126,9 @@ np.random.seed(seed)
 time=pd.read_csv("data/time.txt",sep=" ")
 time=time.to_numpy()
 
-a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
 #a=pd.read_csv("data/gas_segundo_caso_variavel.txt",sep=" ")
-#a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
 #a=pd.read_csv("data/gas_terceiro_caso_interpolado.txt",sep=" ",usecols=[0,1,2])
 #a=pd.read_csv("data/gas_quarto_caso_variavel.txt",sep=" ")
 
