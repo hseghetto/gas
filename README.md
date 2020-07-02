@@ -1,1 +1,6 @@
-# gas
+Last tests where run with gas_rnn_alter, prediction plots where saved in plots/
+0-25: 3 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, patience=30, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+50-75: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, patience=30, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+100-125: 10 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, patience=30, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+1000-1025: 5 past datapoints, 0.0075 L2 regularizer, layer size = 16, layers = GRU + Linear, patience=30, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+1050-1075: 5 past datapoints, 0.0025 L2 regularizer, layer size = 16, layers = GRU + Linear, patience=30, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado

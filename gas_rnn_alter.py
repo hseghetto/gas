@@ -114,7 +114,7 @@ def preprocess(arq):
 #--------------------------------
 t0 =tm.perf_counter()
     
-for seed in range(50, 75):
+for seed in range(1050, 1075):
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
@@ -170,7 +170,7 @@ for seed in range(50, 75):
     
     layer_size=16
     
-    reg=0.005
+    reg=0.0025
     
     model = keras.Sequential()
     model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
