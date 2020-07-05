@@ -113,8 +113,10 @@ def preprocess(arq):
     return data,label
 #--------------------------------
 t0 =tm.perf_counter()
-    
-for seed in range(1050, 1075):
+
+pd.set_option('display.max_columns', None)
+
+for seed in range(1250, 1275):
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
@@ -170,7 +172,7 @@ for seed in range(1050, 1075):
     
     layer_size=16
     
-    reg=0.0025
+    reg=0.0050
     
     model = keras.Sequential()
     model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
@@ -183,12 +185,12 @@ for seed in range(1050, 1075):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 1000
-    Patience=30
+    EPOCHS = 500
+    Patience=1000
     early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=Patience)
     history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
                         validation_data=(train_data_norm[val_index], target[val_index]), 
-                        verbose=0, callbacks=[PrintDot(),early_stop])
+                        verbose=0, callbacks=[PrintDot()])
     
     #---------------- EVALUATING and TESTING -------------------------------------------------
     hist = pd.DataFrame(history.history)
@@ -290,14 +292,29 @@ for seed in range(1050, 1075):
     print(np.mean(mae))
     print(np.mean(mape))
     
+    with open("plots/"+str(seed)+".txt",'w+') as arq: #appending results to hist.txt
+        arq.write(str(hist.tail(1)))
+        arq.write("\n")
+        arq.write("Max mse:"+str(np.max(mse)))
+        arq.write("\n")
+        arq.write("Max mae:"+str(np.max(mae)))
+        arq.write("\n")
+        arq.write("Max mape:"+str(np.max(mape)))
+        arq.write("\n")
+        arq.write("Mean mse:"+str(np.mean(mse)))
+        arq.write("\n")
+        arq.write("Mean mae:"+str(np.mean(mae)))
+        arq.write("\n")
+        arq.write("Mean mape:"+str(np.mean(mape)))
+    
     bourdet=np.zeros((len(predict_target),3))
     bourdet[0][0]=300-predict_data[0][0][1]
     for i in range(1,len(predict_data)-last+1):
         bourdet[i][0]=300-predict_data[i][0][1]
         bourdet[i][1]=np.abs((bourdet[i][0]-bourdet[i-1][0])/np.log(time[i+last-1][-1]/time[i+last-2][-1]))
         
-    plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
-    plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[1] for j in bourdet[0:len(bourdet)]],c="red")
+    plt.scatter([i[-1] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
+    plt.scatter([i[-1] for i in time[0:len(bourdet)]],[j[1] for j in bourdet[0:len(bourdet)]],c="red")
     plt.show()
     
     plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
@@ -309,3 +326,4 @@ for seed in range(1050, 1075):
     plt.ylim([10,10000])
     plt.xlim([0.0001,100])
     plt.show()
+    
