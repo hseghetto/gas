@@ -22,14 +22,16 @@ class PrintDot(keras.callbacks.Callback):
     print('.', end='')
 
 def noise(x):
-    return np.sin(x*np.pi)
+    for i in range(len(x)):
+        x[i][1]=x[i][1]+np.sin(time[i][0]*3.1415)*3
+    return x
 
-def gauss_noise(train_data,last):
-    noise=np.random.normal(0,0.1,[len(train_data),last])
-    for i in range(len(train_data)):
-        for j in range(last):
-            train_data[i][j] += noise[i][j]
-    return train_data
+def gauss_noise(data):
+    noise=np.random.normal(0,0.01,len(data))
+    print(noise.shape)
+    for i in range(len(data)):
+        data[i][1]=data[i][1]*(1+noise[i])
+    return data
 
 def arqScatter(arq):
     plt.scatter([i[0] for i in arq],[j[1] for j in arq],c=[k[-1] for k in arq],cmap="Set1")
@@ -116,7 +118,7 @@ t0 =tm.perf_counter()
 
 pd.set_option('display.max_columns', None)
 
-for seed in range(1250, 1275):
+for seed in range(1425, 1450):
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
@@ -129,7 +131,7 @@ for seed in range(1250, 1275):
     time=pd.read_csv("data/time.txt",sep=" ")
     time=time.to_numpy()
     
-    #a=pd.read_csv("data/gas_terceiro_caso_interpolado.txt",sep=" ",usecols=[0,1,2])
+    #a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
     #a=pd.read_csv("data/gas_segundo_caso_variavel.txt",sep=" ")
     a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
     #a=pd.read_csv("data/gas_quarto_caso_variavel.txt",sep=" ")
@@ -137,6 +139,7 @@ for seed in range(1250, 1275):
     a=a.to_numpy()
     
     #a=sampling(a)
+    a=noise(a)
     arqScatter(a)
     
     squareP=True
@@ -185,8 +188,8 @@ for seed in range(1250, 1275):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 500
-    Patience=1000
+    EPOCHS = 1000
+    Patience=50
     early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=Patience)
     history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
                         validation_data=(train_data_norm[val_index], target[val_index]), 

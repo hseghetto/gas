@@ -68,8 +68,8 @@ def modelGraphs(hist):
     print(np.mean(np.abs(target)))
 
 def resultGraphs(prediction):
-    plt.scatter([i[0] for i in time[last+1:]],[j for j in prediction],c="red")
-    plt.scatter([i[0] for i in time[last+1:]],[j for j in target],c="blue")
+    plt.scatter([i[0] for i in time[last+2:]],[j for j in prediction],c="red")
+    plt.scatter([i[0] for i in time[last+2:]],[j for j in target],c="blue")
     plt.xlabel("Time")
     plt.ylabel("Pressure")
     plt.show()
@@ -83,16 +83,17 @@ def resultGraphs(prediction):
 def preprocess(arq):
     data=[]
     label=[]
-    for i in range(0,arq.shape[0]-last-1):
+    for i in range(0,arq.shape[0]-last-2):
         data.append([])
         for j in range(last):
             data[-1].append([])
-            data[-1][-1].append(arq[i+j+1][0]) #appending time
-            data[-1][-1].append(arq[i+j,1]) #appending pressure
-            data[-1][-1].append(arq[i+j+1,-1]) #appending flow rate
+            data[-1][-1].append(arq[i+j+2][0]) #appending time
+            #data[-1][-1].append(arq[i+j,1]) #appending pressure
+            data[-1][-1].append(arq[i+j+1,1]-arq[i+j,1])
+            data[-1][-1].append(arq[i+j+2,-1]) #appending flow rate
             
         #label.append(arq[i+last,1]) #appending pressure target
-        label.append(arq[i+last,1]-arq[i+last-1,1])
+        label.append(arq[i+last+1,1]-arq[i+last,1])
         
     data=np.array(data)
     label=np.array(label)
@@ -106,18 +107,18 @@ seed=1
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
-time=pd.read_csv("time.txt",sep=" ")
+time=pd.read_csv("data/time.txt",sep=" ")
 time=time.to_numpy()
 
-#a=pd.read_csv("gas_primeiro_caso_variavel.txt",sep=" ")
-#a=pd.read_csv("gas_segundo_caso_variavel.txt",sep=" ")
-a=pd.read_csv("gas_terceiro_caso_variavel.txt",sep=" ")
-#a=pd.read_csv("gas_quarto_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_segundo_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_quarto_caso_variavel.txt",sep=" ")
 
 a=a.to_numpy()
 arqScatter(a)
 
-deltaT=False
+deltaT=True
 if(deltaT==True):
     for i in range(1,len(a)):
         a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
@@ -146,10 +147,10 @@ print(train_data.shape)
 layer_size=16
 
 model = keras.Sequential()
-model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(0.001),
+model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(0.005),
                  activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
 #model.add(keras.layers.Dense(layer_size, activation='relu'))
-model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(0.001),
+model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(0.005),
                  activity_regularizer=keras.regularizers.l1(0.)))
 
 model.compile(optimizer='adam',
@@ -157,11 +158,11 @@ model.compile(optimizer='adam',
               metrics=['mae','mse','mape'])
 
 EPOCHS = 1000
-Patience=30
+Patience=50
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=Patience)
 history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
                     validation_data=(train_data_norm[val_index], target[val_index]), 
-                    verbose=0, callbacks=[PrintDot(),early_stop])
+                    verbose=0, callbacks=[PrintDot()])
 
 #---------------- EVALUATING and TESTING -------------------------------------------------
 hist = pd.DataFrame(history.history)
@@ -172,7 +173,7 @@ print(hist.tail(1))
 
 modelGraphs(hist)
 
-s=["gas_primeiro_caso_variavel.txt","gas_segundo_caso_variavel.txt","gas_terceiro_caso_variavel.txt","gas_quarto_caso_variavel.txt","gas_quinto_caso_variavel.txt"]
+s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt"]
 for k in range(len(s)):    
     a=pd.read_csv(s[k],sep=" ")    
     a=a.to_numpy()
@@ -192,7 +193,7 @@ for k in range(len(s)):
     resultGraphs(prediction)
 
 #-------------------Predictions---------------------------
-a=pd.read_csv("gas_quinto_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_quinto_caso_alterado.txt",sep=" ")
 a=a.to_numpy()
 
 if(deltaT==True):
@@ -212,8 +213,6 @@ for i in range(len(predict_data)-last):
         
     r=model.predict([np.array([test])])[0][0] #resulting pressure prediction
     
-    print(r)
-    r=predict_data[i][-1][1]+r
     i=i+1
     for j in range(last):
         #we feed the prediction result back into the predict data to be used in future iterations
@@ -229,44 +228,7 @@ plt.show()
 plt.scatter([i[0] for i in time[0:len(predict_data)]],[j[0][1] for j in predict_data[0:len(predict_data)]],c=[k[0] for k in time[0:len(predict_data)]],cmap="Set1")
 plt.xlabel("Time")
 plt.ylabel("Presssure")
-plt.ylim([100,300])
 plt.show()
 
 t1=tm.perf_counter()
 print("Time elapsed:",t1-t0)
-
-mse=np.zeros(len(predict_target))
-mae=np.zeros(len(predict_target))
-mape=np.zeros(len(predict_target))
-
-for i in range(1,len(predict_data)):
-    mse[i]=np.square(predict_data[i,0,1]-predict_target[i-1])
-    mae[i]=np.abs(predict_data[i,0,1]-predict_target[i-1])
-    mape[i]=mae[i]/predict_target[i-1]*100
-
-print(np.max(mse))
-print(np.max(mae))
-print(np.max(mape))
-print(np.mean(mse))
-print(np.mean(mae))
-print(np.mean(mape))
-
-bourdet=np.zeros((len(predict_target),3))
-bourdet[0][0]=300-predict_data[0][0][1]
-for i in range(1,len(predict_data)-last+1):
-    bourdet[i][0]=300-predict_data[i][0][1]
-    bourdet[i][1]=np.abs((bourdet[i][0]-bourdet[i-1][0])/np.log(time[i+last-1][0]/time[i+last-2][0]))
-    
-plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
-plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[1] for j in bourdet[0:len(bourdet)]],c="red")
-plt.show()
-
-plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[0] for j in bourdet[0:len(bourdet)]],c="blue")
-plt.scatter([i[0] for i in time[0:len(bourdet)]],[j[1] for j in bourdet[0:len(bourdet)]],c="red")
-#plt.scatter([i[0] for i in time],[j[-2] for j in arq],c="green")
-#plt.scatter([i[0] for i in time],[j[-1] for j in arq],c="orange")
-plt.xscale("log")
-plt.yscale("log")
-plt.ylim([1,1000])
-plt.xlim([0.0001,100])
-plt.show()

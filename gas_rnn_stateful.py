@@ -22,9 +22,6 @@ class PrintDot(keras.callbacks.Callback):
     if epoch % 100 == 0: print('')
     print('.', end='')
 
-def noise(x):
-    return np.sin(x*np.pi)
-
 def gauss_noise(train_data,last):
     noise=np.random.normal(0,0.1,[len(train_data),last])
     for i in range(len(train_data)):
@@ -102,7 +99,7 @@ def preprocess(arq):
     return data,label
 #--------------------------------
 t0 =tm.perf_counter()
-last=3
+last=5
 
 seed=1
 tf.random.set_seed(seed)
@@ -111,15 +108,15 @@ np.random.seed(seed)
 time=pd.read_csv("data/time.txt",sep=" ")
 time=time.to_numpy()
 
-#a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
+a=pd.read_csv("data/gas_primeiro_caso_variavel.txt",sep=" ")
 #a=pd.read_csv("data/gas_segundo_caso_variavel.txt",sep=" ")
-a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
+#a=pd.read_csv("data/gas_terceiro_caso_variavel.txt",sep=" ")
 #a=pd.read_csv("data/gas_quarto_caso_variavel.txt",sep=" ")
 
 a=a.to_numpy()
 arqScatter(a)
 
-delta=False
+delta=True
 if(delta==True):
     for i in range(1,len(a)):
         a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
@@ -143,7 +140,8 @@ print(train_data.shape)
 layer_size=16
 
 model = keras.Sequential()
-model.add(keras.layers.LSTM(layer_size, stateful=True, batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
+model.add(keras.layers.LSTM(layer_size, kernel_regularizer=keras.regularizers.l2(0.0001),
+                 activity_regularizer=keras.regularizers.l1(0.), stateful=True, batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
 #model.add(keras.layers.Dense(layer_size, activation='relu'))
 model.add(keras.layers.Dense(1))
 
@@ -151,12 +149,12 @@ model.compile(optimizer='adam',
               loss=tf.keras.losses.mse,
               metrics=['mae','mse','mape'])
 
-EPOCHS = 1000
-Patience=50
+EPOCHS = 100
+Patience=0
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=Patience)
 history = model.fit(train_data_norm[0:train_split], target[0:train_split], epochs=EPOCHS,
                     validation_data=(train_data_norm[train_split:], target[train_split:]), 
-                    verbose=0, callbacks=[PrintDot(),early_stop], shuffle=False, batch_size=1)
+                    verbose=0, callbacks=[PrintDot()], shuffle=False, batch_size=1)
 
 
 #---------------- EVALUATING and TESTING -------------------------------------------------
@@ -168,8 +166,10 @@ print(hist.tail(1))
 
 modelGraphs(hist)
 
-s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
-for k in range(len(s)):    
+#s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
+s=["data/gas_terceiro_caso_variavel.txt"]
+for k in range(len(s)):  
+    model.reset_states()
     a=pd.read_csv(s[k],sep=" ")    
     a=a.to_numpy()
     
@@ -184,9 +184,8 @@ for k in range(len(s)):
         #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
         
     train_data_norm,target_norm=preprocess(a)
-    prediction = model.predict(train_data_norm)
-    resultGraphs(prediction)
-    model.reset_states()
+    prediction = model.predict(train_data_norm[0:239])
+    #resultGraphs(prediction)
 
 #-------------------Predictions---------------------------
 a=pd.read_csv("data/gas_quinto_caso_variavel.txt",sep=" ")
@@ -196,13 +195,18 @@ if(delta==True):
     for i in range(1,len(a)):
         a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
 
+for i in range(1,last+1):
+    a[last-i][1]=prediction[-i] 
+    
 predict_data,predict_target=preprocess(a)
 #predict data will contain the data resulting from the prediction
 #we initialize it with the preprocess result of the case to be predicted
 #test will be receive the normed values of each entry to be used as input
 test=np.zeros(predict_data[0].shape)
 r=0
+ 
 
+#model.reset_states()
 for i in range(len(predict_data)-last):
     for j in range(len(predict_data[0][0])):
         test[:,j]=(predict_data[i,:,j]-data_stats[1,j])/data_stats[2,j]

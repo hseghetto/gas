@@ -20,7 +20,7 @@ string=[]
 #1225-1250: 100 epochs
 #1250-1275: 500 epochs
 #1275-1300: 1000 epochs
-for seed in range(1225,1250): #set this range to the range correspondent to the test
+for seed in range(1200,1300): #set this range to the range correspondent to the test8
     string.append([])
     with open("plots/"+str(seed)+".txt",'r+') as arq:
         for s in arq:
@@ -40,14 +40,15 @@ data_df=df.describe()
 print(data_df)
 
 df=df.to_numpy()
-for j in range(2,4):
+for j in [1,4]:
     plt.scatter([x for x in range(len(df))],[y[j] for y in df])
+
 plt.grid(True)
 #plt.ylim(0,50) #uncomment this line to exclude the outliers
 #plt.yscale("log")
 plt.show()
 
-for j in range(1,len(model[-1])):
+for j in range(1,len(model[-1])-1):
     plt.scatter([x for x in range(len(model))],[y[j] for y in model])
-    plt.grid(True)
+plt.grid(True)
 plt.show()

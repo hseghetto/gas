@@ -12,3 +12,12 @@ Tests where run with gas_rnn_alter, prediction plots and results where saved in 
 1225-1250: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, 100 epochs, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
 1250-1275: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, 500 epochs, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
 1275-1300: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, 1000 epochs, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+
+1400-1425: 0.01 gaussian noise, 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, 1000 epochs, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+1425-1450: sin(x * pi) * 5 noise, 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, 1000 epochs, training with gas_terciero_caso_variavel and predicting gas_quinto_caso_alterado
+
+
+2000-2030: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, [100,50,200] epochs, training with gas_primeiro_caso_variavel and predicting gas_quinto_caso_alterado
+2000-2060: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, [100,50,200] epochs, training with gas_segundo_caso_variavel and predicting gas_quinto_caso_alterado
+
+
