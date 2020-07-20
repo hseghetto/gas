@@ -20,7 +20,7 @@ string=[]
 #1225-1250: 100 epochs
 #1250-1275: 500 epochs
 #1275-1300: 1000 epochs
-for seed in range(1200,1300): #set this range to the range correspondent to the test8
+for seed in range(1400,1450): #set this range to the range correspondent to the test8
     string.append([])
     with open("plots/"+str(seed)+".txt",'r+') as arq:
         for s in arq:
@@ -40,6 +40,12 @@ data_df=df.describe()
 print(data_df)
 
 df=df.to_numpy()
+for j in [0,3]:
+    plt.scatter([x for x in range(len(df))],[y[j] for y in df])
+
+plt.grid(True)
+plt.show()
+
 for j in [1,4]:
     plt.scatter([x for x in range(len(df))],[y[j] for y in df])
 
