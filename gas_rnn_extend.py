@@ -13,30 +13,29 @@ import tensorflow as tf
 
 from tensorflow import keras
 
-class PrintDot(keras.callbacks.Callback):
+class PrintDot(keras.callbacks.Callback): #Helps tracking progress in epochs during training
   def on_epoch_end(self, epoch, logs):
     if epoch % 100 == 0: print('')
     print('.', end='')
 
-def noise(x):
+def noise(x): #sin noise
     for i in range(len(x)):
         x[i][1]=x[i][1]+np.sin(time[i][0]*3.1415)*3
     return x
 
-def gauss_noise(data):
-    noise=np.random.normal(0,0.01,len(data))
-    print(noise.shape)
+def gauss_noise(data): #white noise
     for i in range(len(data)):
-        data[i][1]=data[i][1]*(1+noise[i])
+        noise=np.random.normal(0,0.01,1)
+        data[i][1]=data[i][1]*(1+noise)
     return data
 
-def arqScatter(arq):
+def arqScatter(arq): #Displays Pressure x Time for a dataset, colorcoded for extraction rate
     plt.scatter([i[0] for i in arq],[j[1] for j in arq],c=[k[-1] for k in arq],cmap="Set1")
     plt.xlabel("Time")
     plt.ylabel("Presssure")
     plt.show() 
 
-def modelGraphs(hist):
+def modelGraphs(hist): #Receives model training history and displays error graphs
     plt.figure(figsize=[2*6.4/1,3*4.8/2])
     P=max(len(hist)-Patience*2,10,len(hist)-100)
     
@@ -91,13 +90,16 @@ def modelGraphs(hist):
     plt.show()
     print(np.mean(np.abs(target)))
     
-def resultGraphs(prediction,target):
+def resultGraphs(prediction,target): #Plots predicted pressures together with respective targets
+    #Pressure x Time graph 
     plt.scatter([i[0] for i in time[last+1:len(target)+last+1]],[j for j in target],c="blue",marker="x")
     plt.scatter([i[0] for i in time[last+1:len(prediction)+last+1]],[j for j in prediction],c="red",marker="+")
     plt.xlabel("Time")
     plt.ylabel("Pressure")
     #plt.ylim([100,300])
     plt.show()
+    
+    #Target x Prediction graph
     plt.scatter([i[0] for i in prediction],[j for j in target],c=[k[0] for k in time[last+1:len(target)+last+1]],cmap='nipy_spectral')
     plt.xlabel("Prediction")
     plt.ylabel("Target")
@@ -107,7 +109,13 @@ def resultGraphs(prediction,target):
     plt.grid(True)
     plt.show()
     
-def sampling(arq):
+def sampling(arq): 
+    #This function is used to reduce the dataset size, picking points only if either
+    # 1: pressure difference from last chosen point and a given i-th point is bigger than a Pthreshold
+    # 2: pressure difference from a given i-th point and the next point is bigger than the Pthreshold
+    # 3: time difference from last chosen point and a given i-th point is bigger than a Tthreshold
+    # This was needed to use with the RNN models, otherwise time spent training and making predictions would be prohibitive
+    # This may or may not negatively influence a given model`s capacity to propperly learn the data
     r=[]
     tr=0.5
     tr2=2
@@ -119,7 +127,11 @@ def sampling(arq):
     r=np.array(r)
     return r
             
-def preprocess(arq):
+def preprocess(arq): #returns the arrays to be fed the model
+    #When using an RNN data must be fed with an {N, timestep, features} shape
+    #In our case this means N is the number of datapoints that can be used to predict (we cant predict if there are not at least L past datapoints)
+    #timestep is the number of L past points used for each prediction
+    #we used [timestamp, past pressure, flow rate] for each timestep giving us features=3
     data=[]
     label=[]
     for i in range(0,arq.shape[0]-last-1):
@@ -138,14 +150,14 @@ def preprocess(arq):
     
     return data,label
 
-def calcTime(a):
+def calcTime(a):#returns an array with the absolute time and deltaT of data
     t=[]
     t.append([a[0][0],0])
     for i in range(1,len(a)):
         t.append([a[i][0],a[i][0]-a[i-1][0]])
     return t
 
-def split(a):
+def split(a):#return the index used to split the dataset between training+validation and prediction
     i=0
     while(a[i][0]<144 or a[i][-1]!=200000):
         i=i+1
@@ -160,52 +172,60 @@ for seed in range(0, 3):
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
-    last=5
+    last=5 #L previous pressure points to be used for each prediction 
     
-    
+    #Setting seed to ensure reproducebility
     tf.random.set_seed(seed)
     np.random.seed(seed)
     
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
-    
+    #Reading dataset as an array
+    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")   
     a=a.to_numpy()
     
+    #reducing dataset, aplying noise and graphing
     a=sampling(a)
     #a=noise(a)
     arqScatter(a)
     
+    #removing datapoints not to be used for training
     index=split(a)
     time=calcTime(a)
     a=a[0:index]
     print(a[-2:])
-    
     arqScatter(a)
     
     squareP=True
     if(squareP==True):
         for i in range(len(a)):
-            a[i][1]=np.square(a[i][1])
+            a[i][1]=np.square(a[i][1]) #squaring pressures
             
     deltaT=True
     if(deltaT==True):
         for i in range(1,len(a)):
             a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
-        
+    
+    #saving data about the sequence used
     data_df=pd.DataFrame(a)
     data_df=data_df.describe()
     data_stats=data_df.to_numpy()
     
-    train_data,target=preprocess(a)
+    #shaping the data correctly
+    train_data,target=preprocess(a) #we use the model to predict the real pressure, hence we need the target array before normalizing data
+    
+    #normalizing/standarizing the sequence
     for i in range(0,len(a[0])):
         a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
         #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
         
-    train_data_norm,target_norm=preprocess(a)
+    #shaping the data correctly
+    train_data_norm,target_norm=preprocess(a) #train_data_norm will be used as input for the model, using train_data would significantly hinder the model
     
+    #[0:train_split] will be used for traing, [train_split:] will be used for validation
     train_split=int(len(train_data)*0.8)
     
+    #crating the lists of indexes for training and validation 
     r=list(range(len(train_data)))
-    np.random.shuffle(r)
+    np.random.shuffle(r) 
     train_index=r[0:train_split]
     val_index=r[train_split:]
     
@@ -249,7 +269,8 @@ for seed in range(0, 3):
        "data/gas_sd_extendido_1.txt",
        "data/gas_im_extendido_1.txt"]
     
-    for k in range(len(s)):
+    for k in range(len(s)):#this is meant to test model results when fed real data
+        #we do all the same data treatment for each dataset
         a=pd.read_csv(s[k],sep=" ")    
         a=a.to_numpy()
         
@@ -266,17 +287,16 @@ for seed in range(0, 3):
                 a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
         
         train_data,target=preprocess(a)
-        
         for i in range(0,len(a[0])):
             a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
             #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
-            
         train_data_norm,target_norm=preprocess(a)
+        
         prediction = model.predict(train_data_norm[0:index-last])
         resultGraphs(prediction,target[0:len(prediction)])
-    
-    #model.predict(train_data_norm[index-last:index-1])
+        
     #-------------------Predictions---------------------------
+    #From now on we will make dynamic predictions using the result from previous predictions 
     a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
     a=a.to_numpy()
     a=sampling(a)
@@ -297,9 +317,9 @@ for seed in range(0, 3):
             a[-i][0]=np.abs(a[-i][0]-a[-i-1][0])#replacing timestamps with time delta
             
     predict_data,predict_target=preprocess(a)
-    #predict data will contain the data resulting from the prediction
-    #we initialize it with the preprocess result of the case to be predicted
-    #test will be receive the normed values of each entry to be used as input
+    #predict data will contain the data resulting from each prediction
+    #we initialize it with the preprocessed data of the case to be predicted
+    #test will be receiving the normed values of each entry to be used as input
     test=np.zeros(predict_data[0].shape)
     r=[]
     
@@ -314,7 +334,7 @@ for seed in range(0, 3):
             #we feed the prediction result back into the predict data to be used in future iterations
             predict_data[i+j][-j-1][1]=r[-1]*300
     
-                
+    #plotting results
     plt.scatter([i for i in r[0:len(predict_data)]],[j for j in predict_target[0:len(predict_data)]],c=[k[0] for k in time[0:len(predict_data)]],cmap='nipy_spectral')
     plt.xlabel("Prediction")
     plt.ylabel("Target")
@@ -336,6 +356,7 @@ for seed in range(0, 3):
     t1=tm.perf_counter()
     print("Time elapsed:",t1-t0)
     
+    #calculating error
     mse=np.zeros(len(predict_target))
     mae=np.zeros(len(predict_target))
     mape=np.zeros(len(predict_target))
@@ -352,6 +373,7 @@ for seed in range(0, 3):
     print(np.mean(mae))
     print(np.mean(mape))
     
+    #saving results
     if(save==True):
         with open("plots/"+str(seed)+".txt",'w+') as arq: #appending results to hist.txt
             arq.write(str(hist.tail(1)))
@@ -368,6 +390,7 @@ for seed in range(0, 3):
             arq.write("\n")
             arq.write("Mean mape:"+str(np.mean(mape)))
     """
+    #calculating bourdet
     bourdet=np.zeros((len(r),2))
     bourdet[0][0]=300-r[0]
     for i in range(1,len(r)):
