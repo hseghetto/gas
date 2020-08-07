@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jul 14 02:06:36 2020
+Created on Sun Jul 26 22:26:02 2020
 
 @author: hsegh
 """
@@ -150,13 +150,40 @@ def split(a):
     while(a[i][0]<144 or a[i][-1]!=200000):
         i=i+1
     return i
+
+def BuildModel(fullData, Data):
+    input1 = tf.keras.layers.Input(shape = fullData.shape)
+    input2 = tf.keras.layers.Input(shape = Data.shape[1:])
+    
+    x = tf.keras.layers.Conv1D(last, 20, strides=20, padding="same", use_bias=False)(input1)
+    x = tf.keras.layers.MaxPooling1D(2, padding="same")(x)
+    
+    #x = tf.keras.layers.Flatten()(x)
+    #x = tf.keras.layers.Dense(1)(x)
+    #x = tf.keras.layers.RepeatVector(last)(x)
+    
+    x = tf.keras.layers.Permute((2,1))(x)
+    
+    #x = tf.keras.layers.Reshape((5,3))(x)
+    
+    
+    
+    print(x)
+    y = tf.keras.layers.Concatenate(axis=-1)([x, input2])
+    print(y)
+    
+    z = tf.keras.layers.GRU(32)(y)
+    z = tf.keras.layers.Dense(1)(z)
+    
+    return tf.keras.Model(inputs=[input1, input2], outputs= z)
+    
 #--------------------------------
 t0 =tm.perf_counter()
 
 pd.set_option('display.max_columns', None)
 
 save=False
-for seed in range(0, 3): 
+for seed in [1]: 
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
@@ -214,27 +241,23 @@ for seed in range(0, 3):
     
     layer_size=16
     
-    reg=0.0050
+    reg=0.000
     
-    model = keras.Sequential()
-    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
-                     activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
-    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg),
-                     activity_regularizer=keras.regularizers.l1(0.)))
+    model = BuildModel(a, train_data_norm)
     
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 100
-    Patience=100
-    early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
-    history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
-                        validation_data=(train_data_norm[val_index], target[val_index]), 
-                        verbose=0, callbacks=[PrintDot()])
+    tf.keras.utils.plot_model(model, show_shapes=True, dpi=64)
     
+    EPOCHS = 100
+    Patience=0
+
+    history = model.fit([[a]*len(train_data_norm), train_data_norm], target, epochs=EPOCHS, verbose=1)
+    """
+    history = model.fit(train_data_norm[train_index], target[train_index], epochs=1000, verbose=0,
+                            validation_data=(train_data_norm[val_index], target[val_index]))
     #---------------- EVALUATING and TESTING -------------------------------------------------
     hist = pd.DataFrame(history.history)
     
@@ -275,7 +298,7 @@ for seed in range(0, 3):
         prediction = model.predict(train_data_norm[0:index-last])
         resultGraphs(prediction,target[0:len(prediction)])
     
-    #model.predict(train_data_norm[index-last:index-1])
+    
     #-------------------Predictions---------------------------
     a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
     a=a.to_numpy()
@@ -367,7 +390,7 @@ for seed in range(0, 3):
             arq.write("Mean mae:"+str(np.mean(mae)))
             arq.write("\n")
             arq.write("Mean mape:"+str(np.mean(mape)))
-    """
+    
     bourdet=np.zeros((len(r),2))
     bourdet[0][0]=300-r[0]
     for i in range(1,len(r)):

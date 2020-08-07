@@ -127,7 +127,7 @@ def preprocess(arq):
         for j in range(last):
             data[-1].append([])
             data[-1][-1].append(arq[i+j+1][0]) #appending time
-            data[-1][-1].append(arq[i+j,1]) #appending pressure
+            #data[-1][-1].append(arq[i+j,1]) #appending pressure
             data[-1][-1].append(arq[i+j+1,2]) #appending flow rate
             
         label.append(arq[i+last,1]/300) #appending pressure target
@@ -155,13 +155,12 @@ t0 =tm.perf_counter()
 
 pd.set_option('display.max_columns', None)
 
-save=False
-#for seed in range(1500, 1525):
-for seed in  [1]:    
+save=True
+for seed in range(1580, 1590):    
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
-    last=5
+    last=2
     
     
     tf.random.set_seed(seed)
@@ -210,7 +209,7 @@ for seed in  [1]:
     
     layer_size=16
     
-    reg=0.001
+    reg=0.000
     
     model = keras.Sequential()
     model.add(keras.layers.LSTM(layer_size, kernel_regularizer=keras.regularizers.l2(reg), stateful=True,
@@ -222,12 +221,12 @@ for seed in  [1]:
     model.compile(optimizer='adam',loss=tf.keras.losses.mse,metrics=['mae','mse','mape'])
     
     
-    EPOCHS = 1000
+    EPOCHS = 10000
     Patience=100
     early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     history = model.fit(train_data_norm[0:train_split], target[0:train_split], epochs=EPOCHS,
                         validation_data=(train_data_norm[train_split:], target[train_split:]), 
-                        verbose=0, callbacks=[PrintDot(),early_stop], shuffle=False, batch_size=1)
+                        verbose=0, callbacks=[PrintDot()], shuffle=False, batch_size=1)
     
     #---------------- EVALUATING and TESTING -------------------------------------------------
     hist = pd.DataFrame(history.history)
@@ -239,9 +238,9 @@ for seed in  [1]:
     modelGraphs(hist)
     
     #s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
-    s=["data/gas_si_extendido_1.txt",
-       "data/gas_sd_extendido_1.txt",
-       "data/gas_im_extendido_1.txt"]
+    s=["data/gas_im_extendido_1.txt",
+       "data/gas_si_extendido_1.txt",
+       "data/gas_sd_extendido_1.txt"]
     
     for k in range(len(s)):
         a=pd.read_csv(s[k],sep=" ")    
@@ -266,6 +265,8 @@ for seed in  [1]:
             #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
             
         train_data_norm,target_norm=preprocess(a)
+        
+        model.reset_states()
         prediction = model.predict(train_data_norm[0:index-last])
         resultGraphs(prediction,target[0:len(prediction)])
     
@@ -276,9 +277,11 @@ for seed in  [1]:
     
     print(a[-5:])
     
+    #a=a[index-last:] #use index-last: to predict from the last point before 144h 
+    
     model.predict(train_data_norm[index-last:index-1])
-    a#=a[index-last:] #use index-last: to predict from the last point before 144h 
     a=a[index-1:] #use index-1: to predict from the first L points after 144h 
+   
     time=calcTime(a)
     
     if(squareP==True):
@@ -301,11 +304,12 @@ for seed in  [1]:
             test[:,j]=(predict_data[i,:,j]-data_stats[1,j])/data_stats[2,j]
             
         r.append(model.predict([np.array([test])])[0][0]) #resulting pressure prediction
-        
+        """
         i=i+1
         for j in range(min(last,len(predict_data)-i)):
             #we feed the prediction result back into the predict data to be used in future iterations
             predict_data[i+j][-j-1][1]=r[-1]*300
+        """
     
                 
     plt.scatter([i for i in r[0:len(predict_data)]],[j for j in predict_target[0:len(predict_data)]],c=[k[0] for k in time[0:len(predict_data)]],cmap='nipy_spectral')

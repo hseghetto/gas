@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jul 14 02:06:36 2020
+Created on Mon Jul 27 23:17:31 2020
 
 @author: hsegh
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -150,17 +151,96 @@ def split(a):
     while(a[i][0]<144 or a[i][-1]!=200000):
         i=i+1
     return i
+
+def BuildModel(fullData, Data):
+    print("Data",Data.shape)
+    input1 = tf.keras.layers.Input(shape = fullData.shape)
+    input2 = tf.keras.layers.Input(shape = [Data.shape[1],Data.shape[2]])
+    
+    x = tf.keras.layers.Conv1D(5, 5, strides=5, padding="same", use_bias=False)(input1)
+    x = tf.keras.layers.MaxPooling1D(5, padding="same")(x)
+    x = tf.nn.leaky_relu(x)
+    x = tf.keras.layers.Conv1D(5, 5, strides=5, padding="same", use_bias=False)(input1)
+    x = tf.keras.layers.MaxPooling1D(5, padding="same")(x)
+    x = tf.nn.leaky_relu(x)
+    x = tf.keras.layers.Conv1D(5, 5, strides=5, padding="same", use_bias=False)(input1)
+    x = tf.keras.layers.MaxPooling1D(5, padding="same")(x)
+    x = tf.nn.leaky_relu(x)
+    x = tf.keras.layers.Dense(last, activation="relu")(x)
+    
+    #x = tf.keras.layers.Flatten()(x)
+    #x = tf.keras.layers.Dense(1)(x)
+    #x = tf.keras.layers.RepeatVector(last)(x)
+    
+    x = tf.keras.layers.Permute((2,1))(x)
+    
+    #x = tf.keras.layers.Reshape((5,3))(x)
+    
+    
+    
+    print(x)
+    y = tf.keras.layers.Concatenate(axis=-1)([x, input2])
+    print(y)
+    
+    z = tf.keras.layers.GRU(32)(y)
+    z = tf.keras.layers.Dense(1)(z)
+    
+    return tf.keras.Model(inputs=[input1, input2], outputs= z)
+
+
+def loss(x_train,full_x, pressure_to_predict):
+    full_x = np.expand_dims(full_x, axis=0)
+    #x_train = np.expand_dims(x_train, axis=0)
+    full_x = full_x.astype("float32")
+    l=(model([full_x,x_train])[0]-pressure_to_predict)**2
+
+    return l
+
+optimizer=tf.keras.optimizers.Adam(0.01)
+
+def train_step(x_train,full_x,pressure_to_predict):
+    with tf.GradientTape() as tape:  
+        l = loss(x_train,full_x,pressure_to_predict)
+      
+    gradient = tape.gradient(l,model.trainable_variables)
+    optimizer.apply_gradients(zip(gradient,model.trainable_variables))
+    
+    return l
+
+
+def fit(train_dataset,val_dataset, x_full):
+    tf.print("Begin training...")
+    total_loss=[[],[]]
+    for epoch in range(EPOCHS):
+        # Train Loss
+        full_loss=[]
+        if(epoch%100==0):
+            print("")
+        print('.', end='')
+        for n, (train_x, label) in train_dataset.enumerate():
+              l = train_step(train_x,x_full,label)
+              full_loss.append(l)
+        total_loss[0].append(np.mean(full_loss))
+        full_loss=[]
+        for n, (val_x, label) in val_dataset.enumerate():
+              l=loss(val_x,x_full,label)
+              full_loss.append(l)
+        total_loss[1].append(np.mean(full_loss))
+    print(total_loss)
+    total_loss=np.array(total_loss)
+    return np.transpose(total_loss)
+
 #--------------------------------
 t0 =tm.perf_counter()
 
 pd.set_option('display.max_columns', None)
 
 save=False
-for seed in range(0, 3): 
+for seed in [0,1,2]: 
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
-    last=5
+    last=3
     
     
     tf.random.set_seed(seed)
@@ -169,6 +249,7 @@ for seed in range(0, 3):
     a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
     
     a=a.to_numpy()
+    a=a.astype("float32")
     
     a=sampling(a)
     #a=noise(a)
@@ -214,89 +295,62 @@ for seed in range(0, 3):
     
     layer_size=16
     
-    reg=0.0050
+    reg=0.000
     
-    model = keras.Sequential()
-    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
-                     activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
-    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg),
-                     activity_regularizer=keras.regularizers.l1(0.)))
+    model = BuildModel(a, train_data_norm)
     
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 100
-    Patience=100
-    early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
-    history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
-                        validation_data=(train_data_norm[val_index], target[val_index]), 
-                        verbose=0, callbacks=[PrintDot()])
+    tf.keras.utils.plot_model(model, show_shapes=True, dpi=64)
+    
+    EPOCHS = 200
+    Patience=0
+    
+    batch_size=1
+    target=target.astype("float32")
+    
+    train_dataset = tf.data.Dataset.from_tensor_slices((train_data_norm[train_index],target[train_index]))
+    train_dataset = train_dataset.batch(batch_size)
+    
+    val_dataset = tf.data.Dataset.from_tensor_slices((train_data_norm[val_index],target[val_index]))
+    val_dataset = val_dataset.batch(batch_size)
+    
+    l = fit(train_dataset, val_dataset, a)
+    #history = model.fit([[a]*len(train_data_norm), train_data_norm], target, epochs=EPOCHS, verbose=1)
     
     #---------------- EVALUATING and TESTING -------------------------------------------------
-    hist = pd.DataFrame(history.history)
+
+    prediction = model.predict([[a]*len(train_data_norm),train_data_norm])
+    resultGraphs(prediction,target[0:len(prediction)])
     
-    print("-/-")
-    hist['epoch'] = history.epoch
-    print(hist.tail(1))
+    plt.plot([i for i in range(len(l))], [j[0] for j in l])
+    plt.plot([i for i in range(len(l))], [j[1] for j in l])
+    plt.show()
     
-    modelGraphs(hist)
     
-    #s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
-    s=["data/gas_si_extendido_1.txt",
-       "data/gas_sd_extendido_1.txt",
-       "data/gas_im_extendido_1.txt"]
-    
-    for k in range(len(s)):
-        a=pd.read_csv(s[k],sep=" ")    
-        a=a.to_numpy()
-        
-        a=sampling(a)
-        index=split(a)
-        time=calcTime(a)
-            
-        if(squareP==True):
-            for i in range(len(a)):
-                a[i][1]=np.square(a[i][1])
-    
-        if(deltaT==True):
-            for i in range(1,len(a)):
-                a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
-        
-        train_data,target=preprocess(a)
-        
-        for i in range(0,len(a[0])):
-            a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
-            #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
-            
-        train_data_norm,target_norm=preprocess(a)
-        prediction = model.predict(train_data_norm[0:index-last])
-        resultGraphs(prediction,target[0:len(prediction)])
-    
-    #model.predict(train_data_norm[index-last:index-1])
     #-------------------Predictions---------------------------
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
-    a=a.to_numpy()
-    a=sampling(a)
-    index=split(a)
+    b=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
+    b=b.to_numpy()
+    b=sampling(b)
+    index=split(b)
     
-    print(a[-5:])
+    print(b[-5:])
     
-    a=a[index-last:] #use index-last: to predict from the last point before 144h 
-    #a=a[index-1:] #use index-1: to predict from the first L points after 144h 
-    time=calcTime(a)
+    b=b[index-last:] #use index-last: to predict from the last point before 144h 
+    #b=b[index-1:] #use index-1: to predict from the first L points after 144h 
+    time=calcTime(b)
     
     if(squareP==True):
-        for i in range(len(a)):
-            a[i][1]=np.square(a[i][1])
+        for i in range(len(b)):
+            b[i][1]=np.square(b[i][1])
     
     if(deltaT==True):
-        for i in range(1,len(a)):
-            a[-i][0]=np.abs(a[-i][0]-a[-i-1][0])#replacing timestamps with time delta
+        for i in range(1,len(b)):
+            b[-i][0]=np.abs(b[-i][0]-b[-i-1][0])#replacing timestamps with time delta
             
-    predict_data,predict_target=preprocess(a)
+    predict_data,predict_target=preprocess(b)
     #predict data will contain the data resulting from the prediction
     #we initialize it with the preprocess result of the case to be predicted
     #test will be receive the normed values of each entry to be used as input
@@ -306,8 +360,9 @@ for seed in range(0, 3):
     for i in range(0,len(predict_data)):
         for j in range(len(predict_data[0][0])):
             test[:,j]=(predict_data[i,:,j]-data_stats[1,j])/data_stats[2,j]
-            
-        r.append(model.predict([np.array([test])])[0][0]) #resulting pressure prediction
+        
+        x=[np.array([a]),np.array([test])]
+        r.append(model.predict(x)[0][0]) #resulting pressure prediction
         
         i=i+1
         for j in range(min(last,len(predict_data)-i)):
@@ -354,7 +409,7 @@ for seed in range(0, 3):
     
     if(save==True):
         with open("plots/"+str(seed)+".txt",'w+') as arq: #appending results to hist.txt
-            arq.write(str(hist.tail(1)))
+            #arq.write(str(hist.tail(1)))
             arq.write("\n")
             arq.write("Max mse:"+str(np.max(mse)))
             arq.write("\n")
@@ -367,7 +422,7 @@ for seed in range(0, 3):
             arq.write("Mean mae:"+str(np.mean(mae)))
             arq.write("\n")
             arq.write("Mean mape:"+str(np.mean(mape)))
-    """
+    
     bourdet=np.zeros((len(r),2))
     bourdet[0][0]=300-r[0]
     for i in range(1,len(r)):
@@ -387,4 +442,4 @@ for seed in range(0, 3):
     plt.ylim([10,10000])
     plt.xlim([0.0001,100])
     plt.show()
-    """
+    
