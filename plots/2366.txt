@@ -1,0 +1,12 @@
+         loss       mae       mse      mape  val_loss   val_mae   val_mse  \
+999  0.255868  0.307176  0.255869  0.192483  1.366152  0.466419  1.366152   
+
+     val_mape  epoch  
+999  0.382215    999  
+Max mse:420.63018333848703
+Max mae:20.509270668126817
+Max mape:9.120006408970578
+Mean mse:206.7848222993547
+Mean mae:14.131298942485644
+Mean mape:6.733432131589305
+Final pressure:205.9537

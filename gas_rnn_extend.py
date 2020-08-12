@@ -15,8 +15,8 @@ from tensorflow import keras
 
 class PrintDot(keras.callbacks.Callback): #Helps tracking progress in epochs during training
   def on_epoch_end(self, epoch, logs):
-    if epoch % 100 == 0: print('')
-    print('.', end='')
+    if epoch % 10000 == 0: print('')
+    if epoch % 100 == 0:print('.', end='')
 
 def noise(x): #sin noise
     for i in range(len(x)):
@@ -37,7 +37,7 @@ def arqScatter(arq): #Displays Pressure x Time for a dataset, colorcoded for ext
 
 def modelGraphs(hist): #Receives model training history and displays error graphs
     plt.figure(figsize=[2*6.4/1,3*4.8/2])
-    P=max(len(hist)-Patience*2,10,len(hist)-100)
+    P=max(len(hist)-Patience*2,10)
     
     #Loss function graphs
     plt.subplot(321)
@@ -118,7 +118,7 @@ def sampling(arq):
     # This may or may not negatively influence a given model`s capacity to propperly learn the data
     r=[]
     tr=0.5
-    tr2=2
+    tr2=0.5
     
     r.append(arq[0])
     for i in range(len(arq)-1):
@@ -168,11 +168,11 @@ t0 =tm.perf_counter()
 pd.set_option('display.max_columns', None)
 
 save=False
-for seed in range(0, 3): 
+for seed in range(0,3): 
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
-    last=5 #L previous pressure points to be used for each prediction 
+    last=5   #L previous pressure points to be used for each prediction 
     
     #Setting seed to ensure reproducebility
     tf.random.set_seed(seed)
@@ -232,15 +232,16 @@ for seed in range(0, 3):
     #------------ BUILDING THE NETWORK -------------------------------------------
     print(train_data.shape)
     
-    layer_size=16
+    layer_size=8
     
-    reg=0.0050
+    reg=0.0
     
     model = keras.Sequential()
-    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
-                     activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-    #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
+    #model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
+    #                 activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
+    model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
+    model.add(keras.layers.Dense(layer_size,activation="tanh"))
+    model.add(keras.layers.Dense(layer_size,activation="tanh"))    
     model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg),
                      activity_regularizer=keras.regularizers.l1(0.)))
     
@@ -248,7 +249,7 @@ for seed in range(0, 3):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 100
+    EPOCHS = 3000
     Patience=100
     early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
@@ -389,6 +390,8 @@ for seed in range(0, 3):
             arq.write("Mean mae:"+str(np.mean(mae)))
             arq.write("\n")
             arq.write("Mean mape:"+str(np.mean(mape)))
+            #arq.write("\n")
+            #arq.write("Final pressure:"+str(r[-1])) 
     """
     #calculating bourdet
     bourdet=np.zeros((len(r),2))
