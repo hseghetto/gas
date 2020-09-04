@@ -177,6 +177,50 @@ def aof(pressures,flow_rates):
     aof = ((300**2-1.033**2)-model[1])/model[0]
     
     return aof
+"""
+def loss(x_train,full_x, pressure_to_predict):
+    full_x = np.expand_dims(full_x, axis=0)
+    #x_train = np.expand_dims(x_train, axis=0)
+    full_x = full_x.astype("float32")
+    l=(model([full_x,x_train])[0]-pressure_to_predict)**2
+
+    return l
+
+def train_step_2(x_train,x_train_next,pressure_to_predict):
+    with tf.GradientTape() as tape:  
+        y=model(x_train)
+        x_train_next[-1][1]=y
+        l = (model(x_train_next)-pressure_to_predict)**2
+      
+    gradient = tape.gradient(l,model.trainable_variables)
+    optimizer.apply_gradients(zip(gradient,model.trainable_variables))
+    
+    return l
+
+
+def fit(train_dataset,val_dataset, x_full):
+    tf.print("Begin training...")
+    total_loss=[[],[]]
+    for epoch in range(EPOCHS):
+        # Train Loss
+        full_loss=[]
+        if(epoch%100==0):
+            print("")
+        print('.', end='')
+        
+        for i in np.shuffle(list(range(1,len(train_data)))):
+              l = train_step(train_data_norm[i-1],train_data_norm[i],target[i])
+              full_loss.append(l)
+        total_loss[0].append(np.mean(full_loss))
+        full_loss=[]
+        for n, (val_x, label) in val_dataset.enumerate():
+              l=loss(val_x,x_full,label)
+              full_loss.append(l)
+        total_loss[1].append(np.mean(full_loss))
+    print(total_loss)
+    total_loss=np.array(total_loss)
+    return np.transpose(total_loss)
+"""
 #--------------------------------
 t0 =tm.perf_counter()
 
@@ -188,13 +232,14 @@ for seed in range(0,3):
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
     last=2   #L previous pressure points to be used for each prediction 
+    next_steps=2
     
     #Setting seed to ensure reproducebility
     tf.random.set_seed(seed)
     np.random.seed(seed)
     
     #Reading dataset as an array
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")   
+    a=pd.read_csv("data/gas_si_extendido_1.txt",sep=" ")   
     a=a.to_numpy()
     
     #reducing dataset, aplying noise and graphing
@@ -212,7 +257,7 @@ for seed in range(0,3):
             rates.append(a[i-1][-1])
             
     #removing datapoints not to be used for training
-    a=a[0:index[3]]
+    a=a[0:index[1]]
     time=calcTime(a)
     print(a[-2:])
     arqScatter(a)
@@ -323,14 +368,14 @@ for seed in range(0,3):
         
     #-------------------Predictions---------------------------
     #From now on we will make dynamic predictions using the result from previous predictions 
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
+    a=pd.read_csv("data/gas_si_extendido_1.txt",sep=" ")
     a=a.to_numpy()
     a=sampling(a)
     index=split(a)
     
     print(a[-5:])
     
-    a=a[index[3]-last:index[4]] #use index-last: to predict from the last point before 144h 
+    a=a[index[1]-last:] #use index-last: to predict from the last point before 144h 
     #a=a[index-1:] #use index-1: to predict from the first L points after 144h 
     time=calcTime(a)
     

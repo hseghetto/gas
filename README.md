@@ -36,13 +36,27 @@ result.py reads the data from plots/#.txt and graphs the metrics associated to p
 2000-2030: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, [100,50,200] epochs, training with gas_primeiro_caso_variavel and predicting gas_quinto_caso_alterado
 2000-2060: 5 past datapoints, 0.005 L2 regularizer, layer size = 16, layers = GRU + Linear, [100,50,200] epochs, training with gas_segundo_caso_variavel and predicting gas_quinto_caso_alterado
 
-2100-2125: 5 past datapoints, no sampling, layer size=8, layers= Tanh x2 + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+2100-2125: 5 past datapoints, tr=tr2=0, layer size=8, layers= Tanh x2 + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
 2125-2150: 5 past datapoints, tr=tr2=0.1, layer size=8, layers= Tanh x2 + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
 2150-2175: 5 past datapoints, tr=tr2=0.5, layer size=8, layers= Tanh x2 + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
 2175-2200: 5 past datapoints, tr=tr2=0 , layer size=8, layers= Tanh x2 + Linear, 1000 epochs, 75/25 train/val split unrandomized, training with gas_im_1 and predicting gas_im_1 (144h)
 2200-2225: 5 past datapoints, tr=tr2=0.5, layer size=8, layers= Tanh x2 + Linear, 100 patience, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
 
 
-2200-2225: 2 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
-2225-2250: 3 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
-2250-2275: 5 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+2300-2325: 2 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+2325-2350: 3 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+2350-2375: 5 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+
+
+
+2400-2410: 2 past datapoints, 0.005 L2 regularizer, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+2410-2420: 2 past datapoints, 0.005 L2 regularizer, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+
+2420-2430: 2 past datapoints, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+2430-2440: 2 past datapoints, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+
+2440-2450: 2 past datapoints, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 50/50 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+2450-2460: 2 past datapoints, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 50/50 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
+
+2460-2470: 2 past datapoints, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (~100h)
+2470-2480: 2 past datapoints, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (~100h)

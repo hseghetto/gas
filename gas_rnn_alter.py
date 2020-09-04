@@ -158,7 +158,7 @@ t0 =tm.perf_counter()
 
 pd.set_option('display.max_columns', None)
 
-save=True
+save=False
 for seed in range(1500, 1525):    
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
@@ -200,10 +200,18 @@ for seed in range(1500, 1525):
     
     train_data,target=preprocess(a)
     for i in range(0,len(a[0])):
-        a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
+        #a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
+        a[:,i]=(a[:,i]-data_stats[1,i])/(data_stats[6,i]-data_stats[4,i]) #robust scalling 
         #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
         
     train_data_norm,target_norm=preprocess(a)
+    
+    plt.scatter([i[0][0] for i in train_data],[j[0][0] for j in train_data_norm])
+    plt.show()
+    plt.scatter([i[0][1] for i in train_data],[j[0][1] for j in train_data_norm])
+    plt.show()
+    plt.scatter([i[0][2] for i in train_data],[j[0][2] for j in train_data_norm])
+    plt.show()
     
     train_split=int(len(train_data)*0.8)
     
@@ -230,7 +238,7 @@ for seed in range(1500, 1525):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 1000
+    EPOCHS = 2000
     Patience=100
     early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
@@ -339,7 +347,7 @@ for seed in range(1500, 1525):
     for i in range(0,len(predict_data)):
         mse[i]=np.square(r[i]-predict_target[i])
         mae[i]=np.abs(r[i]-predict_target[i])
-        mape[i]=mae[i]/r[i]*100
+        mape[i]=mae[i]/predict_target[i]*100
     
     print(np.max(mse))
     print(np.max(mae))

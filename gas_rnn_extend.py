@@ -168,18 +168,18 @@ t0 =tm.perf_counter()
 pd.set_option('display.max_columns', None)
 
 save=False
-for seed in range(0,3): 
+for seed in range(0,5): 
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     
-    last=5   #L previous pressure points to be used for each prediction 
+    last=3   #L previous pressure points to be used for each prediction 
     
     #Setting seed to ensure reproducebility
     tf.random.set_seed(seed)
     np.random.seed(seed)
     
     #Reading dataset as an array
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")   
+    a=pd.read_csv("data/gas_si_extendido_1.txt",sep=" ")   
     a=a.to_numpy()
     
     #reducing dataset, aplying noise and graphing
@@ -232,16 +232,16 @@ for seed in range(0,3):
     #------------ BUILDING THE NETWORK -------------------------------------------
     print(train_data.shape)
     
-    layer_size=8
+    layer_size=16
     
     reg=0.0
     
     model = keras.Sequential()
-    #model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
-    #                 activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
-    model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-    model.add(keras.layers.Dense(layer_size,activation="tanh"))
-    model.add(keras.layers.Dense(layer_size,activation="tanh"))    
+    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
+                     activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
+    #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
+    #model.add(keras.layers.Dense(layer_size,activation="tanh"))
+    #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
     model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg),
                      activity_regularizer=keras.regularizers.l1(0.)))
     
@@ -249,7 +249,7 @@ for seed in range(0,3):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
-    EPOCHS = 3000
+    EPOCHS = 1000
     Patience=100
     early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
@@ -298,7 +298,7 @@ for seed in range(0,3):
         
     #-------------------Predictions---------------------------
     #From now on we will make dynamic predictions using the result from previous predictions 
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
+    a=pd.read_csv("data/gas_si_extendido_1.txt",sep=" ")
     a=a.to_numpy()
     a=sampling(a)
     index=split(a)
@@ -365,7 +365,7 @@ for seed in range(0,3):
     for i in range(0,len(predict_data)):
         mse[i]=np.square(r[i]-predict_target[i])
         mae[i]=np.abs(r[i]-predict_target[i])
-        mape[i]=mae[i]/r[i]*100
+        mape[i]=mae[i]/predict_target[i]*100
     
     print(np.max(mse))
     print(np.max(mae))

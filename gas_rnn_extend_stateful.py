@@ -340,7 +340,7 @@ for seed in range(1580, 1590):
     for i in range(0,len(predict_data)):
         mse[i]=np.square(r[i]-predict_target[i])
         mae[i]=np.abs(r[i]-predict_target[i])
-        mape[i]=mae[i]/r[i]*100
+        mape[i]=mae[i]/predict_target[i]*100
     
     print(np.max(mse))
     print(np.max(mae))
