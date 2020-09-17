@@ -31,7 +31,7 @@ def CalcAOF(pressures,flow_rates):
 #1225-1250: 100 epochs
 #1250-1275: 500 epochs
 #1275-1300: 1000 epochs
-for seed in range(2400,2480): #set this range to the range correspondent to the test8
+for seed in range(3500,3530): #set this range to the range correspondent to the test8
     string.append([])
     with open("plots/"+str(seed)+".txt",'r+') as arq:
         for s in arq:

@@ -15,8 +15,8 @@ from tensorflow import keras
 
 class PrintDot(keras.callbacks.Callback): #Helps tracking progress in epochs during training
   def on_epoch_end(self, epoch, logs):
-    if epoch % 1000 == 0: print('')
-    if epoch % 10 == 0: print('.', end='')
+    if epoch % 100 == 0: print('')
+    print('.', end='')
 
 def noise(x): #sin noise
     for i in range(len(x)):
@@ -117,8 +117,8 @@ def sampling(arq):
     # This was needed to use with the RNN models, otherwise time spent training and making predictions would be prohibitive
     # This may or may not negatively influence a given model`s capacity to propperly learn the data
     r=[]
-    tr=0.0
-    tr2=0.0
+    tr=0.5
+    tr2=0.5
     
     r.append(arq[0])
     for i in range(len(arq)-1):
@@ -158,11 +158,9 @@ def calcTime(a):#returns an array with the absolute time and deltaT of data
     return t
 
 def split(a):#return the index used to split the dataset between training+validation and prediction
-    ind=[0]
+    ind=[]
     for i in range(1,len(a)):
-        if(a[i-1,-1]!=a[i,-1]):
-            ind.append(i)
-        if(a[ind[-1]][0]<143 and a[i][0]>143):
+        if(a[i-1][-1]!=a[i][-1]):
             ind.append(i)
     return ind
 
@@ -181,15 +179,14 @@ def aof(pressures,flow_rates):
     return aof
 
 def loss(x,pressure_to_predict):  
+            
     for i in range(PRED):
-        #print(x[:,i,:,:].shape)
-        y=model(x[:,i,:,:])
-        y=np.squeeze((y*pfactor-data_stats[1][1])/data_stats[2][1])
+        y=model(x[:][i])
+        y=(y*pfactor-data_stats[1][1])/data_stats[2][1]
         for j in range(1,min(PRED+1-i,last+1)):
-            x[:,i+j,-j,1]=y
+            x[:][i+j][-j][1]=y
+    l = (model(x[:][-1])-pressure_to_predict)**2
     
-    l = (model(x[:,-1])-pressure_to_predict)**2
-
     return l
 
 def train_step(x,pressure_to_predict):
@@ -207,74 +204,59 @@ def train_step(x,pressure_to_predict):
 
 optimizer=tf.keras.optimizers.Adam(0.01)
 
-def fit(train_x,train_label,val_x,val_label):
-    train_size=len(train_x)
-    val_size=len(val_x)
-    
+def fit(train_data_norm,target,train_index,val_index):
     tf.print("Begin training...")
     total_loss=[[],[]]
     for epoch in range(EPOCHS):
+        # Train Loss
+        full_loss=[]
         if(epoch%100==0):
             print("")
         print('.', end='')
         
-        full_loss=0
-        for i in range(0,train_size,BATCH_SIZE):
-            l = train_step(train_x[i:i+BATCH_SIZE], train_label[i:i+BATCH_SIZE])
-            full_loss += np.sum(l)
-        total_loss[0].append(full_loss/train_size)
-        
-        full_loss=0
-        for i in range(0,val_size,BATCH_SIZE):
-            l = np.ndarray.flatten(np.array(loss(val_x[i:i+BATCH_SIZE], val_label[i:i+BATCH_SIZE])))
-            full_loss += np.sum(l)
-        total_loss[1].append(full_loss/val_size)
-        
+        for i in train_index:
+              x = [j for j in [k for k in train_data_norm[i-PRED:i+1]]] 
+              t = target[i]
+        l = train_step([train_data_norm[i-PRED:i+1],train_data_norm[i+1-PRED:i+2]],target[i])
+              full_loss.append(l)
+        total_loss[0].append(np.mean(full_loss))
+        full_loss=[]
+        for i in val_index:
+              l=loss(train_data_norm[i-PRED:i+1],target[i])
+              full_loss.append(l)
+        total_loss[1].append(np.mean(full_loss))
     total_loss=np.array(total_loss)
     return np.transpose(total_loss)
-
-def customFitPreprocess():
-    r=[]
-    print("////-----//")
-    for i in range(PRED,len(train_data)):
-        aux=np.array([x for x in [y for y in [z for z in train_data_norm[i-PRED:i+1]]]])
-        r.append(aux)
-    return np.array(r)
 #--------------------------------
 t0 =tm.perf_counter()
 
-
 pd.set_option('display.max_columns', None)
 
-save=True
+save=False
 initial_pressure=300
 pfactor=1
 
-mae_runs=[]
-for seed in range(3520,3530): 
+for seed in range(0,3): 
     tf.executing_eagerly()
     #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     PRED = 1
-    last= 3  #L previous pressure points to be used for each prediction 
-    BATCH_SIZE=64
+    last=2   #L previous pressure points to be used for each prediction 
     
     #Setting seed to ensure reproducebility
     tf.random.set_seed(seed)
     np.random.seed(seed)
     
     #Reading dataset as an array
-    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")  
-    #a=pd.read_csv("data/gas_terceiro_caso_interpolado.txt",sep=" ",usecols=[0,1,2])  
+    a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")   
     a=a.to_numpy()
     
     #reducing dataset, aplying noise and graphing
     a=sampling(a)
     time=calcTime(a)
-    a=gauss_noise(a,0.01)
+    a=gauss_noise(a,0.05)
     arqScatter(a)
     
     index=split(a)
-    """
     #saving data for AOF
     pressures=[]
     rates=[]
@@ -282,19 +264,15 @@ for seed in range(3520,3530):
         if(a[i-1][-1]!=0):
             pressures.append(a[i-1][1])
             rates.append(a[i-1][-1])
-        print(aof(pressures,rates))
-    """
             
     #removing datapoints not to be used for training
     a=a[0:index[-1]]
-    #a=a[0:index[4]]
-    #a=a[index[0]:index[3]]
-    #a=a[index[1]:index[5]]
     
     print(len(a))
     arqScatter(a)
     
-
+    print(aof(pressures,rates))
+    
     squareP=False
     if(squareP==True):
         pfactor=initial_pressure
@@ -326,57 +304,51 @@ for seed in range(3520,3530):
     train_split=int(len(train_data)*0.8)
     
     #crating the lists of indexes for training and validation 
-    r=list(range(PRED,len(train_data)-1))
+    r=list(range(5,len(train_data)))
     np.random.shuffle(r) 
     train_index=r[0:train_split]
     val_index=r[train_split:]
     
-    Aaa=customFitPreprocess()
     #------------ BUILDING THE NETWORK -------------------------------------------
     print(train_data.shape)
     
     layer_size=16
-    
-    reg1=0.00
-    reg2=0.05
+
+    reg=0.00
     
     model = keras.Sequential()
-    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg2),
-                     activity_regularizer=keras.regularizers.l1(reg1), input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
+    model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg),
+                     activity_regularizer=keras.regularizers.l1(0.), batch_input_shape=(1, train_data_norm.shape[1], train_data_norm.shape[2])))
     #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
     #model.add(keras.layers.Dense(layer_size,activation="tanh"))
     #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
-    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg2),
-                     activity_regularizer=keras.regularizers.l1(reg1)))
+    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg),
+                     activity_regularizer=keras.regularizers.l1(0.)))
     
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
- 
-    EPOCHS = 0
-    l=fit(Aaa[train_index],np.expand_dims(target[train_index],axis=1),
-          Aaa[val_index],np.expand_dims(target[val_index],axis=1))
-
-
-    tup=((100,8),(100,64))
-    for (EPOCHS,BATCH_SIZE) in tup:
-        Patience=EPOCHS//10
-        early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
-        
-        history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
-                            validation_data=(train_data_norm[val_index], target[val_index]), 
-                            verbose=0, callbacks=[PrintDot()], batch_size=BATCH_SIZE)
-        hist = pd.DataFrame(history.history)
-        print("-/-")
-        hist['epoch'] = history.epoch
-        print(hist.tail(1))
-        
-        modelGraphs(hist)
+    EPOCHS = 1000
+    Patience=100
+    early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     
+    history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
+                        validation_data=(train_data_norm[val_index], target[val_index]), 
+                        verbose=0, callbacks=[PrintDot()])
+    
+    EPOCHS = 200
+    l=fit(train_data_norm,target,train_index,val_index)
     
 
     #---------------- EVALUATING and TESTING -------------------------------------------------
+    hist = pd.DataFrame(history.history)
+    
+    print("-/-")
+    hist['epoch'] = history.epoch
+    print(hist.tail(1))
+    
+    modelGraphs(hist)
     
     plt.plot([x for x in range(20,len(l))],[y[0] for y in l[20:]])
     plt.plot([x for x in range(20,len(l))],[y[1] for y in l[20:]])
@@ -416,14 +388,14 @@ for seed in range(3520,3530):
     #-------------------Predictions---------------------------
     #From now on we will make dynamic predictions using the result from previous predictions 
     a=pd.read_csv("data/gas_im_extendido_1.txt",sep=" ")
-    #a=pd.read_csv("data/gas_quinto_caso_alterado.txt",sep=" ")
     a=a.to_numpy()
     a=sampling(a)
     index=split(a)
     
-    #a=a[0:index[1]]
-    #a=a[index[3]-last:index[-3]] #use index-last: to predict from the last point before 144h 
-    a=a[index[-1]-last:] #use index-1: to predict from the first L points after 144h 
+    print(a[-5:])
+    
+    a=a[index[-1]-last:] #use index-last: to predict from the last point before 144h 
+    #a=a[index-1:] #use index-1: to predict from the first L points after 144h 
     time=calcTime(a)
     
     if(squareP==True):
@@ -491,7 +463,6 @@ for seed in range(3520,3530):
     print(np.mean(mae))
     print(np.mean(mape))
     
-    mae_runs.append(mae)
     #saving results
     if(save==True):
         with open("plots/"+str(seed)+".txt",'w+') as arq: #appending results to hist.txt
@@ -535,6 +506,3 @@ for seed in range(3520,3530):
     plt.xlim([0.0001,100])
     plt.show()
     """
-    
-
-print(tup,reg2,np.mean(np.array(mae_runs)))

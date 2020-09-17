@@ -48,7 +48,6 @@ result.py reads the data from plots/#.txt and graphs the metrics associated to p
 2350-2375: 5 past datapoints, tr=tr2=0.5 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
 
 
-
 2400-2410: 2 past datapoints, 0.005 L2 regularizer, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
 2410-2420: 2 past datapoints, 0.005 L2 regularizer, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (96h)
 
@@ -60,3 +59,10 @@ result.py reads the data from plots/#.txt and graphs the metrics associated to p
 
 2460-2470: 2 past datapoints, tr=tr2=0.0 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (~100h)
 2470-2480: 2 past datapoints, tr=tr2=0.1 , layer size=16, layers= GRU + Linear, 1000 epochs, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (~100h)
+
+#sqrP=false, gauss noise = 0.01
+3000-3010: batch size=64, 3 past datapoints, tr=tr2=0.0, 0.005 L2 regularizer, 3000 epochs, layer size=16, layers= GRU + Linear, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+3010-3020: batch size=64, 3 past datapoints, tr=tr2=0.0, 0.005 L2 regularizer, 3000 epochs, layer size=16, layers= GRU + Linear, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (72~120h)
+3020-3030: batch size= inf, 3 past datapoints, tr=tr2=0.0, 0.005 L2 regularizer, 500 patience, layer size=16, layers= GRU + Linear, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1 (144h)
+3030-3040: batch size=64, 3 past datapoints, tr=tr2=0.0, 0.005 L2 regularizer, 3000 epochs, layer size=16, layers= GRU + Linear, 80/20 train/val split, training with gas_im_1(24~120h) and predicting gas_im_1
+3040-3050: batch size=64, 3 past datapoints, tr=tr2=0.0, 0.005 L2 regularizer, 3000 epochs, layer size=16, layers= GRU + Linear, 80/20 train/val split, training with gas_im_1 and predicting gas_im_1(96~120h)
