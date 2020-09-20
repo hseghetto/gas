@@ -245,9 +245,9 @@ pfactor=1
 
 for squareP in [True,False]:
     for last in [2,3,5,10]:
-        for noise1 in [0,0.01,0.05,0.1]:
-            for reg2 in [0,0.001,0.005,0.01,0.05,0.1,0.5,1]:
-                for train_percent in [0.5,0.6,0.7,0.8,0.9]:
+        for noise1 in [0.01,0.05,0.1]:
+            for train_percent in [0.5,0.6,0.7,0.8,0.9]:
+                for reg2 in [0.001,0.005,0.01,0.05,0.1,0.5]:
                     for layer_size in [8,16,24,32]:
                         result_runs=[[],[],[],[]]
                         tup=[[100,8],[100,64]]
