@@ -270,21 +270,10 @@ for seed in range(3520,3530):
     #reducing dataset, aplying noise and graphing
     a=sampling(a)
     time=calcTime(a)
-    a=gauss_noise(a,0.01)
     arqScatter(a)
     
     index=split(a)
-    """
-    #saving data for AOF
-    pressures=[]
-    rates=[]
-    for i in index:
-        if(a[i-1][-1]!=0):
-            pressures.append(a[i-1][1])
-            rates.append(a[i-1][-1])
-        print(aof(pressures,rates))
-    """
-            
+   
     #removing datapoints not to be used for training
     a=a[0:index[-1]]
     #a=a[0:index[4]]
@@ -293,7 +282,6 @@ for seed in range(3520,3530):
     
     print(len(a))
     arqScatter(a)
-    
 
     squareP=False
     if(squareP==True):
@@ -305,6 +293,8 @@ for seed in range(3520,3530):
     if(deltaT==True):
         for i in range(1,len(a)):
             a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
+    
+    a=gauss_noise(a,0.01)
     
     #saving data about the sequence used
     data_df=pd.DataFrame(a)
@@ -353,7 +343,8 @@ for seed in range(3520,3530):
                   loss=tf.keras.losses.mse,
                   metrics=['mae','mse','mape'])
     
- 
+    summ = model.summary()
+    
     EPOCHS = 0
     l=fit(Aaa[train_index],np.expand_dims(target[train_index],axis=1),
           Aaa[val_index],np.expand_dims(target[val_index],axis=1))
@@ -491,7 +482,9 @@ for seed in range(3520,3530):
     print(np.mean(mae))
     print(np.mean(mape))
     
-    mae_runs.append(mae)
+    result_runs[0].append(mae)
+    result_runs[1].append(mae)
+    result_runs[2].append(mae)
     #saving results
     if(save==True):
         with open("plots/"+str(seed)+".txt",'w+') as arq: #appending results to hist.txt

@@ -1,0 +1,2 @@
+num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;sequence;hour;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrpID;last
+3190811086675544089;6606.351141836763;81.22329342999947;33.71419253079665;0.2620010244831656;IM;143.9603271;0;0;0.01;0;0.8;16;0.0;0.05;[10, 10];[8, 64];0;3
