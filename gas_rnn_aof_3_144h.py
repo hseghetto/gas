@@ -243,6 +243,17 @@ pd.set_option('display.max_columns', None)
 initial_pressure=300
 pfactor=1
 
+verbose=False #set this to true if you want to see testing and prediction graphs
+"""
+This will use data from 0-144h to predict the last 144h
+Do notice that running this code would result in training the network 2*4*4*5*6*4*10 = 38400 times
+I do not expect this to be completed in one day (actually I guess you can make about 500 runs per day, if each run takes no more than 5 minutes)
+I did, however, put the hyperparameters i consider the most important deeper in the loops, such that there will be variance in their valuer with less runs
+You may want to change a few of these parameter ranges such that it doenst take so long
+There are also other hyperparameter wich i didnt include here, most notably the reg1 for L_1 regularization, but also tr1 and tr2 for the adaptative timestep  
+I also left tup with 100 epoch with 8 of batchsize + 100 with 64, this is barelly enough to achieve convergence, so results may be subpar
+"""
+
 for squareP in [True,False]:
     for last in [2,3,5,10]:
         for noise1 in [0.01,0.05,0.1]:
@@ -252,14 +263,13 @@ for squareP in [True,False]:
                         result_runs=[[],[],[],[]]
                         tup=[[100,8],[100,64]]
                         #for tup in [[100,8],[100,64]]:
-                        for seed in range(10):
+                        for seed in range(10): #number of runs per hyperparameter set
                             print(seed)
                             
                             tf.executing_eagerly()
                             #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
                             PRED = 1
                             #last= 3  #L previous pressure points to be used for each prediction 
-                            BATCH_SIZE=64
                             
                             #Setting seed to ensure reproducebility
                             tf.random.set_seed(seed)
@@ -285,6 +295,7 @@ for squareP in [True,False]:
                             #a=a[index[1]:index[5]]
                         
                             #squareP=False
+                            pfactor=1
                             if(squareP==True):
                                 pfactor=initial_pressure
                                 for i in range(len(a)):
@@ -334,8 +345,8 @@ for squareP in [True,False]:
                             #reg2=0.05
                             
                             model = keras.Sequential()
-                            model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l2(reg2),
-                                             activity_regularizer=keras.regularizers.l1(reg1), input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
+                            model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                                                       input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
                             #model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
                             #model.add(keras.layers.Dense(layer_size,activation="tanh"))
                             #model.add(keras.layers.Dense(layer_size,activation="tanh"))    
@@ -348,46 +359,54 @@ for squareP in [True,False]:
                         
                             for (EPOCHS,BATCH_SIZE) in tup:
                                 Patience=EPOCHS//10
-                                model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
+                                history = model.fit(train_data_norm[train_index], target[train_index], epochs=EPOCHS,
                                                     validation_data=(train_data_norm[val_index], target[val_index]), 
                                                     verbose=0, callbacks=[], batch_size=BATCH_SIZE)
                             
                             
                         
                             #---------------- EVALUATING and TESTING -------------------------------------------------
-                            '''
                             
-                            #s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
-                            s=["data/gas_si_extendido_1.txt",
-                               "data/gas_sd_extendido_1.txt",
-                               "data/gas_im_extendido_1.txt"]
-                            
-                            for k in range(len(s)):#this is meant to test model results when fed real data
-                                #we do all the same data treatment for each dataset
-                                a=pd.read_csv(s[k],sep=" ")    
-                                a=a.to_numpy()
+                            if(verbose): 
                                 
-                                a=sampling(a)
-                                index=split(a)
-                                time=calcTime(a)
+                                hist = pd.DataFrame(history.history)
+                                print("-/-")
+                                hist['epoch'] = history.epoch
+                                print(hist.tail(1))
+                                
+                                modelGraphs(hist)
+                                
+                                #s=["data/gas_primeiro_caso_variavel.txt","data/gas_segundo_caso_variavel.txt","data/gas_terceiro_caso_variavel.txt","data/gas_quarto_caso_variavel.txt","data/gas_quinto_caso_variavel.txt"]
+                                s=["data/gas_si_extendido_1.txt",
+                                   "data/gas_sd_extendido_1.txt",
+                                   "data/gas_im_extendido_1.txt"]
+                                
+                                for k in range(len(s)):#this is meant to test model results when fed real data
+                                    #we do all the same data treatment for each dataset
+                                    a=pd.read_csv(s[k],sep=" ")    
+                                    a=a.to_numpy()
                                     
-                                if(squareP==True):
-                                    for i in range(len(a)):
-                                        a[i][1]=np.square(a[i][1])
+                                    a=sampling(a,tr1,tr2)
+                                    index=split(a)
+                                    time=calcTime(a)
+                                        
+                                    if(squareP==True):
+                                        for i in range(len(a)):
+                                            a[i][1]=np.square(a[i][1])
+                                
+                                    if(deltaT==True):
+                                        for i in range(1,len(a)):
+                                            a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
+                                    
+                                    train_data,target=preprocess(a)
+                                    for i in range(0,len(a[0])):
+                                        a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
+                                        #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
+                                    train_data_norm,target_norm=preprocess(a)
+                                    
+                                    prediction = model.predict(train_data_norm)
+                                    resultGraphs(prediction,target[0:len(prediction)])
                             
-                                if(deltaT==True):
-                                    for i in range(1,len(a)):
-                                        a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
-                                
-                                train_data,target=preprocess(a)
-                                for i in range(0,len(a[0])):
-                                    a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
-                                    #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
-                                train_data_norm,target_norm=preprocess(a)
-                                
-                                prediction = model.predict(train_data_norm)
-                                resultGraphs(prediction,target[0:len(prediction)])
-                            '''
                                 
                             #-------------------Predictions---------------------------
                             #From now on we will make dynamic predictions using the result from previous predictions 
@@ -438,14 +457,14 @@ for squareP in [True,False]:
                                 mae[i]=np.abs(r[i]-predict_target[i])
                                 mape[i]=mae[i]/predict_target[i]*100
                                 
-                            aof_pressures=[200,400,600]
-                            aof_rates=[249.3,192.1,120.7] # Modified Isochronous
+                            aof_rates=[200,400,600]
+                            aof_pressures=[249.3,192.1,120.7] # Modified Isochronous
                             
-                            last_pressure=predict_data[-1][-1][1]
+                            last_pressure=predict_data[-1][-1][1]/pfactor
                             last_rate=predict_data[-1][-1][-1]/1000
                             
                             for (i,rate) in enumerate(aof_rates):
-                                if (rate==last_rate):
+                                if (rate==int(last_rate)):
                                     aof_pressures[i]=last_pressure
                             
                             aof=calc_aof(aof_pressures, aof_rates)
@@ -455,7 +474,22 @@ for squareP in [True,False]:
                             result_runs[2].append(np.mean(mape))
                             result_runs[3].append(aof)
                         
-                        
+                            if(verbose):
+                                #plotting results
+                                plt.scatter([i for i in r[0:len(predict_data)]],[j for j in predict_target[0:len(predict_data)]],c=[k[0] for k in time[0:len(predict_data)]],cmap='nipy_spectral')
+                                plt.xlabel("Prediction")
+                                plt.ylabel("Target")
+                                plt.plot([np.min(r)-10,10+np.max(r)],[np.min(r)-10,10+np.max(r)],c="magenta")
+                                #plt.ylim([100,initial_pressure])
+                                #plt.xlim([100,initial_pressure])
+                                plt.grid(True)
+                                plt.show()
+                                
+                                plt.scatter([i[0] for i in time[last:last+len(predict_data)]], [j for j in predict_target[0:len(predict_data)]], c="magenta",marker="x")
+                                plt.scatter([i[0] for i in time[last:last+len(predict_data)]], [j for j in r[0:len(predict_data)]], c=[k[0] for k in time[last:last+len(predict_data)]],cmap='nipy_spectral',marker="+")
+                                plt.xlabel("Time")
+                                plt.ylabel("Presssure")
+                                plt.show()
                             
                         with open("results.txt",'a') as arq: 
                             s=";"+str(np.mean(result_runs[0]))
