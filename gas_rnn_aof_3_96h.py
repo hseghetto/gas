@@ -167,7 +167,7 @@ def split(a):#return the index used to split the dataset between training+valida
 def calc_aof(pressures,flow_rates):
     
     pressures=(initial_pressure**2-np.array(pressures)**2)
-    flow_rates=np.array(flow_rates)/1000
+    flow_rates=np.array(flow_rates)
     
     model=np.polyfit(flow_rates, pressures, 1)
     
@@ -200,7 +200,7 @@ def train_step(x,pressure_to_predict):
     
     return l
 
-optimizer=tf.keras.optimizers.Adam(0.01)
+optimizer=keras.optimizers.Adam(0.01)
 
 def fit(train_x,train_label,val_x,val_label):
     train_size=len(train_x)
@@ -266,13 +266,13 @@ for squareP in [True,False]:
                         for seed in range(10): #number of runs per hyperparameter set
                             print(seed)
                             
-                            tf.executing_eagerly()
+                            #tf.executing_eagerly()
                             #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
                             PRED = 1
                             #last= 3  #L previous pressure points to be used for each prediction 
                             
                             #Setting seed to ensure reproducebility
-                            tf.random.set_seed(seed)
+                            #tf.random.set_seed(seed)
                             np.random.seed(seed)
                             
                             #Reading dataset as an array
@@ -289,11 +289,16 @@ for squareP in [True,False]:
                             index=split(a)
                            
                             #removing datapoints not to be used for training
-                            a=a[0:index[-3]]
+                            a=a[0:index[4]]
                             #a=a[0:index[4]]
                             #a=a[index[0]:index[3]]
                             #a=a[index[1]:index[5]]
-                        
+                            
+                            #noise1=0.01
+                            a=gauss_noise(a,noise1)
+                            noise2=0
+                            a=sin_noise(a,noise2)
+                            
                             #squareP=False
                             pfactor=1
                             if(squareP==True):
@@ -306,11 +311,9 @@ for squareP in [True,False]:
                                 for i in range(1,len(a)):
                                     a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
                             
-                            #noise1=0.01
-                            a=gauss_noise(a,noise1)
-                            noise2=0
-                            a=sin_noise(a,noise2)
-                            
+                            if(verbose):
+                                arqScatter(a)
+                                
                             #saving data about the sequence used
                             data_df=pd.DataFrame(a)
                             data_df=data_df.describe()
@@ -354,7 +357,7 @@ for squareP in [True,False]:
                                              activity_regularizer=keras.regularizers.l1(reg1)))
                             
                             model.compile(optimizer='adam',
-                                          loss=tf.keras.losses.mse,
+                                          loss=keras.losses.mse,
                                           metrics=['mae','mse','mape'])
                         
                             for (EPOCHS,BATCH_SIZE) in tup:
@@ -417,7 +420,7 @@ for squareP in [True,False]:
                             index=split(a)
                             
                             #a=a[0:index[1]]
-                            a=a[index[4]-last:index[-2]] #use index-last: to predict from the last point before 144h 
+                            a=a[index[4]-last:index[5]] #use index-last: to predict from the last point before 144h 
                             #a=a[index[-1]-last:] #use index-1: to predict from the first L points after 144h 
                             time=calcTime(a)
                             
@@ -464,7 +467,9 @@ for squareP in [True,False]:
                             last_rate=predict_data[-1][-1][-1]/1000
                             
                             for (i,rate) in enumerate(aof_rates):
+                                print("as")
                                 if (rate==int(last_rate)):
+                                    print("vf")
                                     aof_pressures[i]=last_pressure
                             
                             aof=calc_aof(aof_pressures, aof_rates)

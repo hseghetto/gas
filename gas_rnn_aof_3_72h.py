@@ -13,6 +13,7 @@ import tensorflow as tf
 
 from tensorflow import keras
 
+
 class PrintDot(keras.callbacks.Callback): #Helps tracking progress in epochs during training
   def on_epoch_end(self, epoch, logs):
     if epoch % 1000 == 0: print('')
@@ -167,7 +168,7 @@ def split(a):#return the index used to split the dataset between training+valida
 def calc_aof(pressures,flow_rates):
     
     pressures=(initial_pressure**2-np.array(pressures)**2)
-    flow_rates=np.array(flow_rates)/1000
+    flow_rates=np.array(flow_rates)
     
     model=np.polyfit(flow_rates, pressures, 1)
     
@@ -200,7 +201,7 @@ def train_step(x,pressure_to_predict):
     
     return l
 
-optimizer=tf.keras.optimizers.Adam(0.01)
+optimizer=keras.optimizers.Adam(0.01)
 
 def fit(train_x,train_label,val_x,val_label):
     train_size=len(train_x)
@@ -254,25 +255,26 @@ There are also other hyperparameter wich i didnt include here, most notably the 
 I also left tup with 100 epoch with 8 of batchsize + 100 with 64, this is barelly enough to achieve convergence, so results may be subpar
 """
 
-for squareP in [True,False]:
-    for last in [2,3,5,10]:
+for squareP in [False]:
+    for last in [2,3,5]:
         for noise1 in [0.01,0.05,0.1]:
-            for train_percent in [0.5,0.6,0.7,0.8,0.9]:
-                for reg2 in [0.001,0.005,0.01,0.05,0.1,0.5]:
-                    for layer_size in [8,16,24,32]:
+            for train_percent in [0.6,0.7,0.8]:
+                for reg2 in [0.01,0.05,0.1,0.5]:
+                    for layer_size in [8,16,24]:
                         result_runs=[[],[],[],[]]
-                        tup=[[100,8],[100,64]]
+                        tup=[[200,8],[200,64]]
                         #for tup in [[100,8],[100,64]]:
+                        print(" ")
                         for seed in range(10): #number of runs per hyperparameter set
-                            print(seed)
+                            print(seed,end=" ")
                             
-                            tf.executing_eagerly()
+                            #tf.executing_eagerly()
                             #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
                             PRED = 1
                             #last= 3  #L previous pressure points to be used for each prediction 
                             
                             #Setting seed to ensure reproducebility
-                            tf.random.set_seed(seed)
+                            #tf.random.set_seed(seed)
                             np.random.seed(seed)
                             
                             #Reading dataset as an array
@@ -294,6 +296,11 @@ for squareP in [True,False]:
                             #a=a[index[0]:index[3]]
                             #a=a[index[1]:index[5]]
                         
+                            #noise1=0.01
+                            a=gauss_noise(a,noise1)
+                            noise2=0
+                            a=sin_noise(a,noise2)
+                            
                             #squareP=False
                             pfactor=1
                             if(squareP==True):
@@ -306,10 +313,8 @@ for squareP in [True,False]:
                                 for i in range(1,len(a)):
                                     a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
                             
-                            #noise1=0.01
-                            a=gauss_noise(a,noise1)
-                            noise2=0
-                            a=sin_noise(a,noise2)
+                            if(verbose):
+                                arqScatter(a)
                             
                             #saving data about the sequence used
                             data_df=pd.DataFrame(a)
@@ -354,7 +359,7 @@ for squareP in [True,False]:
                                              activity_regularizer=keras.regularizers.l1(reg1)))
                             
                             model.compile(optimizer='adam',
-                                          loss=tf.keras.losses.mse,
+                                          loss=keras.losses.mse,
                                           metrics=['mae','mse','mape'])
                         
                             for (EPOCHS,BATCH_SIZE) in tup:
@@ -417,7 +422,7 @@ for squareP in [True,False]:
                             index=split(a)
                             
                             #a=a[0:index[1]]
-                            a=a[index[3]-last:index[-2]] #use index-last: to predict from the last point before 144h 
+                            a=a[index[3]-last:index[5]] #use index-last: to predict from the last point before 144h 
                             #a=a[index[-1]-last:] #use index-1: to predict from the first L points after 144h 
                             time=calcTime(a)
                             

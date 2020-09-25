@@ -167,7 +167,7 @@ def split(a):#return the index used to split the dataset between training+valida
 def calc_aof(pressures,flow_rates):
     
     pressures=(initial_pressure**2-np.array(pressures)**2)
-    flow_rates=np.array(flow_rates)/1000
+    flow_rates=np.array(flow_rates)
     
     model=np.polyfit(flow_rates, pressures, 1)
     
@@ -294,6 +294,11 @@ for squareP in [True,False]:
                             #a=a[index[0]:index[3]]
                             a=a[index[1]:index[-1]]
                         
+                            #noise1=0.01
+                            a=gauss_noise(a,noise1)
+                            noise2=0
+                            a=sin_noise(a,noise2)
+                            
                             #squareP=False
                             pfactor=1
                             if(squareP==True):
@@ -306,10 +311,8 @@ for squareP in [True,False]:
                                 for i in range(1,len(a)):
                                     a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
                             
-                            #noise1=0.01
-                            a=gauss_noise(a,noise1)
-                            noise2=0
-                            a=sin_noise(a,noise2)
+                            if(verbose):
+                                arqScatter(a)
                             
                             #saving data about the sequence used
                             data_df=pd.DataFrame(a)
