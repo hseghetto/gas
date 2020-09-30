@@ -26,8 +26,9 @@ def calc_aof(pressures,flow_rates):
     return aof
 
 a=pd.read_csv("results.txt",sep=";")  
+s="Median_aof"
 
-#sns.pairplot(a[["Mean_aof","layer_size","reg2","last","train_percent"]])
+sns.pairplot(a[[s,"layer_size","reg2","last","train_percent"]])
 
 initial_pressure=300
 aof_rates=[200,400,600]
@@ -46,9 +47,10 @@ aof_pressures=[249.3,192.1,plin]
 
 aof3= calc_aof(aof_pressures,aof_rates)
 
-b=np.array([x for x in a["Mean_aof"]])
+
+b=np.array([x for x in a[s]])
 r= norm_aof(b,727)
-a["Mean_aof"]=r
+a[s]=r
 
 tol=5/100
 lower=aof*(1-tol)
@@ -56,7 +58,7 @@ upper=aof*(1+tol)
 lower_norm= norm_aof(lower,aof)
 upper_norm= norm_aof(727*1.1,aof)
 
-#sns.pairplot(a[["Mean_aof","layer_size","reg2","last","train_percent"]])
+sns.pairplot(a[[s,"layer_size","reg2","last","train_percent"]])
 
 aof_ex=[]
 for p in range(-100,300):
