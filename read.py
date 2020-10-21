@@ -25,14 +25,14 @@ def calc_aof(pressures,flow_rates):
     
     return aof
 
-a=pd.read_csv("results2.txt",sep=";")  
+a=pd.read_csv("results4.txt",sep=";")  
 s="Median_aof"
 a=a[a[s]>0]
 a=a[a["Mean_aof"]>0]
 
 #sns.heatmap(a[[s]])
 #aa=a[[s,"layer_size","reg1","train_percent"]]
-#sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
+# sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
 
 reg1=a.reg1.unique()
 epochs=a.epochs.unique()
@@ -85,26 +85,24 @@ for i,el in train_stats.items():
     print(el.loc[["mean","std","50%"],["Mean_aof","Var","Median_aof"]])
 print("===========================")
 
+initial_pressure=300
+aof_rates=[200,400,600]
+aof_pressures=[249.3,192.1,120.7]
 
+aof= calc_aof(aof_pressures,aof_rates)
 
 b=np.array([x for x in a[s]])
-r= norm_aof(b,727)
+r= norm_aof(b,aof)
 a[s]=r
 
-aof=727
 tol=5/100
 lower=aof*(1-tol)
 upper=aof*(1+tol)
 lower_norm= norm_aof(lower,aof)
 upper_norm= norm_aof(727*1.1,aof)
 
-#sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
-"""
-initial_pressure=300
-aof_rates=[200,400,600]
-aof_pressures=[249.3,192.1,120.7]
+# sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
 
-aof= calc_aof(aof_pressures,aof_rates)
 
 aof_rates=[200,400]
 aof_pressures=[249.3,192.1]
@@ -124,4 +122,3 @@ for p in range(-100,300):
     
     aof_ex.append([p,calc_aof(aof_pressures,aof_rates)])
 aof_ex=np.array(aof_ex)
-"""

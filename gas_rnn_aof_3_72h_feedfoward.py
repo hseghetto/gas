@@ -257,7 +257,7 @@ There are also other hyperparameter wich i didnt include here, most notably the 
 I also left tup with 100 epoch with 8 of batchsize + 100 with 64, this is barelly enough to achieve convergence, so results may be subpar
 """
 
-path="/content/drive/My Drive/Colab Notebooks/"
+path=""
 
 for squareP in [False]:
     for last in [2,3,5]: #[2,3,5]:
@@ -267,7 +267,7 @@ for squareP in [False]:
                     for reg2 in [0,0.005,0.01]:
                         for layer_size in [16,24,32]:
                             result_runs=[[],[],[],[]]
-                            tup=[[int(sys.argv[1]),8]]
+                            tup=[[100,8]]
                             #for tup in [[100,8],[100,64]]:
                             print(" ")
                             for seed in range(10): #number of runs per hyperparameter set
@@ -355,12 +355,12 @@ for squareP in [False]:
                                 reg2=0.01
     
                                 model = keras.Sequential()
-                                # model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                                #                            input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])),
-                                #                            bias_regularizer=keras.regularizers.l1_l2(reg1,reg2))
-                                model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-                                model.add(keras.layers.Dense(layer_size,activation="relu"),bias_regularizer=keras.regularizers.l1_l2(reg1,reg2),kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2))
-                                model.add(keras.layers.Dense(layer_size,activation="relu"),bias_regularizer=keras.regularizers.l1_l2(reg1,reg2),kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2))
+                                model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                                                            input_shape=(train_data_norm.shape[1], train_data_norm.shape[2]))
+                                                            )
+                                # model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
+                                # model.add(keras.layers.Dense(layer_size,activation="relu"),bias_regularizer=keras.regularizers.l1_l2(reg1,reg2),kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2))
+                                # model.add(keras.layers.Dense(layer_size,activation="relu"),bias_regularizer=keras.regularizers.l1_l2(reg1,reg2),kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2))
                                 model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg2),
                                                  bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
     

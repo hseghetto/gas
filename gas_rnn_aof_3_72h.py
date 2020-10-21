@@ -246,7 +246,7 @@ pd.set_option('display.max_columns', None)
 initial_pressure=300
 pfactor=1
 
-verbose=False #set this to true if you want to see testing and prediction graphs
+verbose=True #set this to true if you want to see testing and prediction graphs
 """
 This will use data from 0-72h to predict 72-120h
 Do notice that running this code would result in training the network 2*4*4*5*6*4*10 = 38400 times
@@ -257,7 +257,7 @@ There are also other hyperparameter wich i didnt include here, most notably the 
 I also left tup with 100 epoch with 8 of batchsize + 100 with 64, this is barelly enough to achieve convergence, so results may be subpar
 """
 
-path="/content/drive/My Drive/Colab Notebooks/"
+path=""
 
 for squareP in [False]:
     for last in [2]: #[2,3,5]:
@@ -287,8 +287,8 @@ for squareP in [False]:
                             a=a.to_numpy()
 
                             #reducing dataset, aplying noise and graphing
-                            tr1=0.0
-                            tr2=0.0
+                            tr1=0.01
+                            tr2=0.01
                             a=sampling(a,tr1,tr2)
                             time=calcTime(a)
 
@@ -315,7 +315,7 @@ for squareP in [False]:
                             deltaT=True
                             if(deltaT==True):
                                 for i in range(1,len(a)):
-                                    a[-i][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
+                                    a[-i-1][0]=np.abs(a[-i][0]-a[-i-1][0]) #replacing timestamps with time delta
 
                             if(verbose):
                                 arqScatter(a)
@@ -329,8 +329,8 @@ for squareP in [False]:
                             train_data,target=preprocess(a) #we use the model to predict the real pressure, hence we need the target array before normalizing data
 
                             #normalizing/standarizing the sequence
-                            for i in range(0,len(a[0])):
-                                a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
+                            # for i in range(0,len(a[0])):
+                            #     a[:,i]=(a[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
                                 #a[:,i]=a[:,i]/data_stats[-1,i] #normalization
 
                             #shaping the data correctly
