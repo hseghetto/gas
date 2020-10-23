@@ -25,30 +25,27 @@ data = gas.delta_times(data,True)
 data = gas.square_pressures(data,False)
 
 data = gas.gauss_noise(data, 0.01)
-data_standarized = gas.standarize(data)
 
-data_shaped,label=gas.preprocess(data_standarized)
+data_stats = gas.stats(data)
+data_norm = gas.standarize(data,data_stats)
 
+data_shaped,label = gas.preprocess(data)
+data_shaped_norm,label_norm = gas.preprocess(data_norm)
 
-"=============================================================================================="
 reg1=0.00
 reg2=0.01
 layer_size = 16
-BATCH_SIZE = 16
-EPOCHS = 100
+shape=(data_shaped.shape[1], data_shaped.shape[2])
 
-model = keras.Sequential()
-model.add(keras.layers.GRU(layer_size, kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           input_shape=(data_shaped.shape[1], data_shaped.shape[2])),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2))
-#model.add(keras.layers.Flatten(input_shape=(train_data_norm.shape[1], train_data_norm.shape[2])))
-#model.add(keras.layers.Dense(layer_size,activation="tanh"))
-#model.add(keras.layers.Dense(layer_size,activation="tanh"))
-model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l2(reg2),
-                 activity_regularizer=keras.regularizers.l1(reg1)))
+model = gas.rnn_network(layer_size, reg1, reg2, shape)
 
-model.compile(optimizer='adam',
-              loss=keras.losses.mse,
-              metrics=['mae','mse','mape'])
+epochs = 1000
+batch_size=64
+patience=epochs
+history = gas.train(epochs,batch_size,data_shaped_norm,label,patience,model)
 
-"=============================================================================================="
+test_results, test_errors = gas.test(data_shaped,label,model)
+
+prediction_results,prediction_errors = gas.predict(data_shaped,label,model,data_stats)
+
+gas.save()

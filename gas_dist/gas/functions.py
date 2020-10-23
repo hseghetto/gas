@@ -42,10 +42,14 @@ def square_pressures(data,aux=False):
             data[i][1]=data[i][1]**2
     return data
 
-def standarize(data):
+def stats(data):
     data_df=pd.DataFrame(data)
     data_df=data_df.describe()
     data_stats=data_df.to_numpy()
+    return data_stats
+
+def standarize(data,data_stats):
+    
     for i in range(0,len(data[0])):
         data[:,i]=(data[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
     return data
@@ -77,3 +81,92 @@ def gauss_noise(data,sigma): #white noise
         noise=np.random.normal(0,sigma,1)
         data[i][1]=data[i][1]*(1+noise)
     return data
+
+def feedfoward_network(layer_size,reg1,reg2,shape):
+    model = keras.Sequential()
+    
+    model.add(keras.layers.Flatten(input_shape=shape))
+    model.add(keras.layers.Dense(layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+    model.add(keras.layers.Dense(layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+
+    model.compile(optimizer='adam',
+              loss=keras.losses.mse,
+              metrics=['mae','mse','mape'])
+    
+    
+    
+def rnn_network(layer_size,reg1,reg2,shape):
+    model = keras.Sequential()
+    model.add(keras.layers.GRU(layer_size, input_shape=shape,
+                           kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+
+    model.compile(optimizer='adam',
+              loss=keras.losses.mse,
+              metrics=['mae','mse','mape'])
+    
+    return model
+
+def fit(Epochs,Batch_size,data_shaped_norm,label,Patience,model):
+    early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
+    h=0
+    
+    for i in len(Epochs):
+       
+        history = model.fit(data_shaped_norm, label, epochs=Epochs[i],
+                            verbose=0, callbacks=[early_stop], batch_size=Batch_size[i])
+
+        hist = pd.DataFrame(history.history)
+        hist['epoch'] = history.epoch
+        
+        if(h == 0):
+            h=hist
+        else:
+            h=pd.concat([h,hist])
+        
+    return h
+
+def test(data_shaped_norm,label,model):
+    prediction = model.predict(data_shaped_norm)
+    
+    mse=np.zeros(len(prediction))
+    mae=np.zeros(len(prediction))
+    mape=np.zeros(len(prediction))
+
+    for i in range(0,len(prediction)):
+        mse[i]=np.square(prediction[i]-label[i])
+        mae[i]=np.abs(prediction[i]-label[i])
+        mape[i]=mae[i]/label[i]*100
+        
+    return prediction,[mse,mae,mape]
+
+def predict(data_shaped_norm,label,model,data_stats):
+    global pfactor
+    size = len(label)
+    prediction = np.zeros(size)
+    
+    for i in range(size):
+        prediction[i] = model.predict([data_shaped_norm[i]])[0][0]
+        
+        norm = (prediction[i]*pfactor- data_stats[1,1])/data_stats[2,1]
+        for j in range(min(last,size-i)):
+            data_shaped_norm[i+j][-j][1] = norm
+        
+    mse=np.zeros(size)
+    mae=np.zeros(size)
+    mape=np.zeros(size)
+
+    for i in range(0,size):
+        mse[i]=np.square(prediction[i]-label[i])
+        mae[i]=np.abs(prediction[i]-label[i])
+        mape[i]=mae[i]/label[i]*100
+    return prediction,[mse,mae,mape]
+
+def save():
+    return 1
