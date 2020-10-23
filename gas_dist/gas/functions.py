@@ -18,6 +18,13 @@ last = 2
 pfactor=1
 initial_pressure = 300
 x=1
+def parameters(_path,_last,_initial_pressure):
+    global last
+    last=_last
+    global path
+    path=_path
+    global initial_pressure
+    initial_pressure=_initial_pressure
 
 def read(file):
     a=pd.read_csv(path+"data/"+file,sep=" ")
@@ -49,7 +56,7 @@ def stats(data):
     return data_stats
 
 def standarize(data,data_stats):
-    
+    data = np.copy(data)
     for i in range(0,len(data[0])):
         data[:,i]=(data[:,i]-data_stats[1,i])/data_stats[2,i] #standarization
     return data
@@ -97,7 +104,7 @@ def feedfoward_network(layer_size,reg1,reg2,shape):
               loss=keras.losses.mse,
               metrics=['mae','mse','mape'])
     
-    
+    return model
     
 def rnn_network(layer_size,reg1,reg2,shape):
     model = keras.Sequential()
@@ -153,9 +160,9 @@ def predict(data_shaped_norm,label,model,data_stats):
     prediction = np.zeros(size)
     
     for i in range(size):
-        
-        prediction[i] = model.predict([[data_shaped_norm[i]]])[0][0]
-        print(prediction[i])
+        #print(np.array([data_shaped_norm[i]]).shape)
+        prediction[i] = model.predict(np.array([data_shaped_norm[i]]))[0][0]
+        #print(prediction[i])
         norm = (prediction[i]*pfactor- data_stats[1,1])/data_stats[2,1]
         for j in range(min(last,size-i)):
             data_shaped_norm[i+j][-j][1] = norm
