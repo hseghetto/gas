@@ -39,13 +39,16 @@ shape=(data_shaped.shape[1], data_shaped.shape[2])
 
 model = gas.rnn_network(layer_size, reg1, reg2, shape)
 
-epochs = 1000
-batch_size=64
+epochs = [10]
+batch_size=[64]
 patience=epochs
+print("Training")
 history = gas.train(epochs,batch_size,data_shaped_norm,label,patience,model)
 
+print("Testing")
 test_results, test_errors = gas.test(data_shaped,label,model)
 
+print("Predicting")
 prediction_results,prediction_errors = gas.predict(data_shaped,label,model,data_stats)
 
 gas.save()

@@ -113,11 +113,11 @@ def rnn_network(layer_size,reg1,reg2,shape):
     
     return model
 
-def fit(Epochs,Batch_size,data_shaped_norm,label,Patience,model):
-    early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
+def train(Epochs,Batch_size,data_shaped_norm,label,Patience,model):
+    early_stop = keras.callbacks.EarlyStopping(monitor='mse', patience=Patience) #CHANGE TO VAl_MSE
     h=0
     
-    for i in len(Epochs):
+    for i in range(len(Epochs)):
        
         history = model.fit(data_shaped_norm, label, epochs=Epochs[i],
                             verbose=0, callbacks=[early_stop], batch_size=Batch_size[i])
@@ -144,7 +144,8 @@ def test(data_shaped_norm,label,model):
         mae[i]=np.abs(prediction[i]-label[i])
         mape[i]=mae[i]/label[i]*100
         
-    return prediction,[mse,mae,mape]
+    errors = np.transpose(np.vstack((mse,mae,mape)))
+    return prediction,errors
 
 def predict(data_shaped_norm,label,model,data_stats):
     global pfactor
@@ -152,8 +153,9 @@ def predict(data_shaped_norm,label,model,data_stats):
     prediction = np.zeros(size)
     
     for i in range(size):
-        prediction[i] = model.predict([data_shaped_norm[i]])[0][0]
         
+        prediction[i] = model.predict([[data_shaped_norm[i]]])[0][0]
+        print(prediction[i])
         norm = (prediction[i]*pfactor- data_stats[1,1])/data_stats[2,1]
         for j in range(min(last,size-i)):
             data_shaped_norm[i+j][-j][1] = norm
@@ -166,7 +168,9 @@ def predict(data_shaped_norm,label,model,data_stats):
         mse[i]=np.square(prediction[i]-label[i])
         mae[i]=np.abs(prediction[i]-label[i])
         mape[i]=mae[i]/label[i]*100
-    return prediction,[mse,mae,mape]
+        
+    errors = np.transpose(np.vstack((mse,mae,mape)))
+    return prediction,errors
 
 def save():
     return 1
