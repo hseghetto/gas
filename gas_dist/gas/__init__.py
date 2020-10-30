@@ -7,3 +7,4 @@ Created on Mon Oct 19 21:49:41 2020
 
 
 from .functions import *
+from .plots import *
