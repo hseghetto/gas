@@ -4,40 +4,44 @@ Created on Mon Oct 19 21:51:22 2020
 
 @author: hsegh
 """
-import matplotlib.pyplot as plt
+import sys
+import os
+
 import numpy as np
-import pandas as pd
-import time as tm
-
 import tensorflow as tf
-
 from tensorflow import keras
+
+import pandas as pd
+import seaborn
+import matplotlib.pyplot as plt
+import time as tm
 
 path = ""
 last = 2
 pfactor=1
 initial_pressure = 300
 x=1
-def parameters(_path,_last,_initial_pressure):
-    global last
-    last=_last
-    global path
-    path=_path
-    global initial_pressure
-    initial_pressure=_initial_pressure
+
 
 def read(file):
     a=pd.read_csv(path+"data/"+file,sep=" ")
     a=a.to_numpy()
     return a
 
-def sample(data):
+def sample(data,tr=0,tr2=0):
+    r=[]
     
-    return data
+    r.append(data[0])
+    for i in range(len(data)-1):
+        if(np.abs(data[i][1]-r[-1][1])>tr or np.abs(data[i][1]-data[i+1][1])>tr or np.abs(data[i][0]-r[-1][0])>tr2):
+            r.append(data[i])
+    r=np.array(r)
+    return r
 
 def delta_times(data,aux=True):
     if(aux):
-        for i in range(1,len(data)):
+        #for i in range(1,len(data)):
+        for i in range(len(data)-1,0,-1):
             data[i][0]=data[i][0]-data[i-1][0]
     return data
 
@@ -120,19 +124,23 @@ def rnn_network(layer_size,reg1,reg2,shape):
     
     return model
 
-def train(Epochs,Batch_size,data_shaped_norm,label,Patience,model):
-    early_stop = keras.callbacks.EarlyStopping(monitor='mse', patience=Patience) #CHANGE TO VAl_MSE
+def train(Epochs,Batch_size,train_data_shaped_norm,train_label,val_shaped_norm,val_label,Patience,model):
+    if(len(val_label)):
+        early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience) #CHANGE TO VAl_MSE
+    else:
+        early_stop = keras.callbacks.EarlyStopping(monitor='mse', patience=Patience)
     h=0
     
     for i in range(len(Epochs)):
        
-        history = model.fit(data_shaped_norm, label, epochs=Epochs[i],
+        history = model.fit(train_data_shaped_norm, train_label, epochs=Epochs[i],
+                            validation_data=(val_shaped_norm,val_label),
                             verbose=0, callbacks=[early_stop], batch_size=Batch_size[i])
 
         hist = pd.DataFrame(history.history)
         hist['epoch'] = history.epoch
         
-        if(h == 0):
+        if(type(h) == type(int(1))):
             h=hist
         else:
             h=pd.concat([h,hist])
@@ -179,5 +187,77 @@ def predict(data_shaped_norm,label,model,data_stats):
     errors = np.transpose(np.vstack((mse,mae,mape)))
     return prediction,errors
 
+def getIndex(series,t=0):
+    if(t==0):
+        r = []
+        for i in range(1,len(series)):
+            if(series[i][-1] != series[i-1][-1]):
+                r.append(i)
+        return r
+    for i in range(len(series)):
+        if(series[i][0]>t):
+            return i-1
+        
+
 def save():
+    p=";"+"IM" #Flow Type
+    p+=";"+str(first_pred_time) #Predicting from
+    p+=";"+str(tr1)
+    p+=";"+str(tr2)
+    p+=";"+str(noise1)
+    p+=";"+str(noise2)
+    p+=";"+str(train_percent)
+    p+=";"+str(layer_size)
+    p+=";"+str(reg1)
+    p+=";"+str(reg2)
+    p+=";"+str([x for x in Epochs])
+    p+=";"+str([x for x in Batch_size])
+    p+=";"+str(int(sqrp))
+    p+=";"+str(int(time_delta))
+    p+=";"+str(last)
+    
+    s = ";"
+    for x in errors_testing:
+        s += ";"+str(np.mean(x))
+    for x in errors_prediction:
+        s += ";"+str(np.mean(x))
+    
+    s = s + p + "\n"
+    
+    with open(path+"results/"+str(hash(p))+".txt",'a') as arq:
+        arq.write(s)
+    return 1
+
+def saveMeanResults(result_runs,tr1,tr2,noise1,noise2,train_percent,layer_size,reg1,reg2,
+         Epochs,Batch_size,first_pred_time,time_delta,sqrp):
+
+    s=";"
+    s+=str(np.mean(result_runs[0])) #MAE
+    s+=";"+str(np.mean(result_runs[1])) #MSE
+    s+=";"+str(np.mean(result_runs[2])) #MAPE
+    s+=";"+str(np.mean(result_runs[3])) #Mean AOF
+    s+=";"+str(np.median(result_runs[3])) #Median AOF
+    s+=";"+str(np.var(result_runs[3])) #Var AOF
+    p=";"+"IM" #Flow Type
+    p+=";"+str(first_pred_time) #Predicting from
+    p+=";"+str(tr1)
+    p+=";"+str(tr2)
+    p+=";"+str(noise1)
+    p+=";"+str(noise2)
+    p+=";"+str(train_percent)
+    p+=";"+str(layer_size)
+    p+=";"+str(reg1)
+    p+=";"+str(reg2)
+    p+=";"+str([x for x in Epochs])
+    p+=";"+str([x for x in Batch_size])
+    p+=";"+str(int(sqrp))
+    p+=";"+str(int(time_delta))
+    p+=";"+str(last)
+    
+    s=str(abs(hash(p)))+s+p
+
+    s+="\n"
+    with open(path+"results/results.txt",'a') as arq:
+        arq.write(s)
+        
     return 1

@@ -1,6 +1,7 @@
 setup.py
 gas/__init__.py
 gas/functions.py
+gas/plots.py
 gas.egg-info/PKG-INFO
 gas.egg-info/SOURCES.txt
 gas.egg-info/dependency_links.txt
