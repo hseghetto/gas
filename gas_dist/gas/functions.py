@@ -16,50 +16,54 @@ import seaborn
 import matplotlib.pyplot as plt
 import time as tm
 
-path = ""
-last = 2
-pfactor=1
-initial_pressure = 300
-tr1=0
-tr2=0
-noise1=0
-noise2=0
-train_percent=1
-layer_size=16
-reg1=16
-reg2=16
-Epochs=[100]
-Epochs1=[0]
-Batch_size=[32]
-first_pred_time=0
-time_delta=False
-sqrp=False
-flow_type="IM"
-transition_size=0
+class Aux:
+    pass
+
+Parameters = Aux()
+
+Parameters.path = ""
+Parameters.last = 2
+Parameters.pfactor=1
+Parameters.initial_pressure = 300
+Parameters.tr1=0
+Parameters.tr2=0
+Parameters.noise1=0
+Parameters.noise2=0
+Parameters.train_percent=1
+Parameters.layer_size=16
+Parameters.reg1=0
+Parameters.reg2=0
+Parameters.Epochs=[100]
+Parameters.Epochs1=[0]
+Parameters.Batch_size=[32]
+Parameters.first_pred_time=0
+Parameters.time_delta=False
+Parameters.sqrp=False
+Parameters.flow_type="IM"
+Parameters.transition_size=0
+    
+
 
 def read(file):
-    a=pd.read_csv(path+"data/"+file,sep=" ")
+    a=pd.read_csv(Parameters.path+"data/"+file,sep=" ")
     a=a.to_numpy()
     return a
 
 def sample(data,pressure_tr=0,time_tr=0):
-    global tr
-    global tr2
-    tr = pressure_tr
-    tr2 = time_tr
+    Parameters.tr = pressure_tr
+    Parameters.tr2 = time_tr
     
     r=[]
     
     r.append(data[0])
     for i in range(len(data)-1):
-        if(np.abs(data[i][1]-r[-1][1])>tr or np.abs(data[i][1]-data[i+1][1])>tr or np.abs(data[i][0]-r[-1][0])>tr2):
+        if(np.abs(data[i][1]-r[-1][1])>pressure_tr or np.abs(data[i][1]-data[i+1][1])>pressure_tr or np.abs(data[i][0]-r[-1][0])>time_tr):
             r.append(data[i])
     r=np.array(r)
     return r
 
 def calc_time_delta(data):
-    global time_delta
-    time_delta = True
+    Parameters.time_delta = True
     
     #for i in range(1,len(data)):
     for i in range(len(data)-1,0,-1):
@@ -67,10 +71,8 @@ def calc_time_delta(data):
     return data
 
 def calc_square_pressures(data):
-    global sqrp
-    sqrp = True
-    global pfactor
-    pfactor = initial_pressure
+    Parameters.sqrp = True
+    Parameters.pfactor = Parameters.initial_pressure
     
     for i in range(len(data)):
         data[i][1]=data[i][1]**2
@@ -95,15 +97,15 @@ def preprocess(data): #returns the arrays to be fed the model
     #we used [timestamp, past pressure, flow rate] for each timestep giving us features=3
     input_data=[]
     label=[]
-    for i in range(0,data.shape[0]-last-1):
+    for i in range(0,data.shape[0]-Parameters.last-1):
         input_data.append([])
-        for j in range(last):
+        for j in range(Parameters.last):
             input_data[-1].append([])
             input_data[-1][-1].append(data[i+j+1][0]) #appending time
             input_data[-1][-1].append(data[i+j,1]) #appending pressure
             input_data[-1][-1].append(data[i+j+1,2]) #appending flow rate
 
-        label.append(data[i+last,1]/pfactor) #appending pressure target
+        label.append(data[i+Parameters.last,1]/Parameters.pfactor) #appending pressure target
 
     input_data=np.array(input_data)
     label=np.array(label)
@@ -116,16 +118,20 @@ def gauss_noise(data,sigma): #white noise
         data[i][1]=data[i][1]*(1+noise)
     return data
 
-def feedfoward_network(layer_size,reg1,reg2,shape):
+def feedfoward_network(layers_size,L1_reg,L2_reg,shape):
+    Parameters.layer_size = layers_size
+    Parameters.reg1 = L1_reg
+    Parameters.reg2 = L2_reg
+    
     model = keras.Sequential()
     
     model.add(keras.layers.Flatten(input_shape=shape))
-    model.add(keras.layers.Dense(layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
-    model.add(keras.layers.Dense(layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
-    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+    model.add(keras.layers.Dense(Parameters.layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2)))
+    model.add(keras.layers.Dense(Parameters.layer_size,activation="tanh",kernel_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2)))
+    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2)))
 
     model.compile(optimizer='adam',
               loss=keras.losses.mse,
@@ -134,19 +140,16 @@ def feedfoward_network(layer_size,reg1,reg2,shape):
     return model
     
 def rnn_network(layers_size,L1_reg,L2_reg,shape):
-    global layer_size
-    layer_size = layers_size
-    global reg1
-    reg1 = L1_reg
-    global reg2
-    reg2 = L2_reg
+    Parameters.layer_size = layers_size
+    Parameters.reg1 = L1_reg
+    Parameters.reg2 = L2_reg
         
     model = keras.Sequential()
-    model.add(keras.layers.GRU(layer_size, input_shape=shape,
-                           kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
-    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(reg1,reg2),
-                           bias_regularizer=keras.regularizers.l1_l2(reg1,reg2)))
+    model.add(keras.layers.GRU(Parameters.layer_size, input_shape=shape,
+                           kernel_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2)))
+    model.add(keras.layers.Dense(1,kernel_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2),
+                           bias_regularizer=keras.regularizers.l1_l2(Parameters.reg1,Parameters.reg2)))
 
     model.compile(optimizer='adam',
               loss=keras.losses.mse,
@@ -156,7 +159,7 @@ def rnn_network(layers_size,L1_reg,L2_reg,shape):
 
 def train(Epochs,Batch_size,train_data_shaped_norm,train_label,val_shaped_norm,val_label,Patience,model):
     if(len(val_label)):
-        early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience) #CHANGE TO VAl_MSE
+        early_stop = keras.callbacks.EarlyStopping(monitor='val_mse', patience=Patience)
     else:
         early_stop = keras.callbacks.EarlyStopping(monitor='mse', patience=Patience)
     h=0
@@ -193,7 +196,6 @@ def test(data_shaped_norm,label,model):
     return prediction,errors
 
 def predict(data_shaped_norm,label,model,data_stats):
-    global pfactor
     size = len(label)
     prediction = np.zeros(size)
     
@@ -201,8 +203,8 @@ def predict(data_shaped_norm,label,model,data_stats):
         #print(np.array([data_shaped_norm[i]]).shape)
         prediction[i] = model.predict(np.array([data_shaped_norm[i]]))[0][0]
         #print(prediction[i])
-        norm = (prediction[i]*pfactor- data_stats[1,1])/data_stats[2,1]
-        for j in range(min(last,size-i)):
+        norm = (prediction[i]*Parameters.pfactor- data_stats[1,1])/data_stats[2,1]
+        for j in range(min(Parameters.last,size-i)):
             data_shaped_norm[i+j][-j][1] = norm
         
     mse=np.zeros(size)
@@ -229,23 +231,23 @@ def getIndex(series,t=0):
             return i-1
         
 def parameters_string():
-    p=";"+flow_type #Flow Type
-    p+=";"+str(first_pred_time) #Predicting from
-    p+=";"+str(last)
-    p+=";"+str(tr1)
-    p+=";"+str(tr2)
-    p+=";"+str(noise1)
-    p+=";"+str(noise2)
-    p+=";"+str(train_percent)
-    p+=";"+str(layer_size)
-    p+=";"+str(reg1)
-    p+=";"+str(reg2)
-    p+=";"+str([x for x in Epochs])
-    p+=";"+str([x for x in Batch_size])
-    p+=";"+str(int(sqrp))
-    p+=";"+str(int(time_delta))
-    p+=";"+str([x for x in Epochs1])
-    p+=";"+str(transition_size)
+    p=";"+Parameters.flow_type #Flow Type
+    p+=";"+str(Parameters.first_pred_time) #Predicting from
+    p+=";"+str(Parameters.last)
+    p+=";"+str(Parameters.tr1)
+    p+=";"+str(Parameters.tr2)
+    p+=";"+str(Parameters.noise1)
+    p+=";"+str(Parameters.noise2)
+    p+=";"+str(Parameters.train_percent)
+    p+=";"+str(Parameters.layer_size)
+    p+=";"+str(Parameters.reg1)
+    p+=";"+str(Parameters.reg2)
+    p+=";"+str([x for x in Parameters.Epochs])
+    p+=";"+str([x for x in Parameters.Batch_size])
+    p+=";"+str(int(Parameters.sqrp))
+    p+=";"+str(int(Parameters.time_delta))
+    p+=";"+str([x for x in Parameters.Epochs1])
+    p+=";"+str(Parameters.transition_size)
     
     return p
     
@@ -265,13 +267,13 @@ def saveRunResults(test_errors,prediction_errors,prediction_aof):
     s += str(prediction_aof)
     s = s + p + "\n"
     try:
-        with open(path+"results/"+str(abs(hash(p)))+".txt",'a') as arq: 
+        with open(Parameters.path+"results/"+str(abs(hash(p)))+".txt",'x') as arq: 
+            arq.write("MSE;MAE;MAPE;Pred_MSE;Pred_MAE;Pred_MAPE;AOF;PARAMETERS\n")  
             arq.write(s)
     except:
-        with open(path+"results/"+str(abs(hash(p)))+".txt",'w+') as arq:
-            arq.write("MSE;MAE;MAPE;Pred_MSE;Pred_MAE;Pred_MAPE;AOF;PARAMETERS\n")    
+        with open(Parameters.path+"results/"+str(abs(hash(p)))+".txt",'a') as arq:
             arq.write(s)
-    return 1
+    return
 
 def saveMeanResults(result_runs):
     
@@ -290,11 +292,11 @@ def saveMeanResults(result_runs):
 
     s+="\n"
     try:
-        with open(path+"results/results.txt",'a') as arq:
-            # arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp")
+        with open(Parameters.path+"results/results.txt",'x') as arq:
+            arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp\n")
             arq.write(s)
     except:
-        with open(path+"results/results.txt",'w+') as arq:
-            arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp;epochs1;Transition_size")
+        with open(Parameters.path+"results/results.txt",'a') as arq:
+            # arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp;epochs1;Transition_size")
             arq.write(s)
-    return 1
+    return

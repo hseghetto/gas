@@ -26,9 +26,9 @@ import time as tm
 import gas
 
 # pip install -e <os.getcwd>/gas_dist
-gas.path = os.getcwd()
-gas.initial_pressure=300
-gas.last=2
+# gas.path = os.getcwd()
+gas.Parameters.initial_pressure=300
+gas.Parameters.last=2
 
 # gas.tr1=0
 # gas.tr2=0
@@ -82,41 +82,40 @@ val_label = label[val_start:val_end]
 predict_data = data_shaped_norm[prediction_start:prediction_end]
 predict_label=label[prediction_start:prediction_end]
 
-layer_size = 16
-reg1 = 0.
-reg2 = 0.
+layer_size= 16
+reg1 = 0.0
+reg2 = 0.0
 shape=(data_shaped.shape[1], data_shaped.shape[2])
 
-result_runs = [[],[],[],[]]
 
-for reg2 in [int(sys.argv[0])]:
-    for layer_size in [16,32]:
+# for reg2 in [int(sys.argv[0])]:
+for reg2 in [0,1,2,10]:
+    for layer_size in [16]:
         for epochs in [[150],[200],[250],[300]]:
             for epochs1 in [[50],[100],[200]]:
                 for transition_size in [50,100,150]:
                     for batch_size in [[32]]:
+                        result_runs = [[],[],[],[]]
                         for seed in range(10):
                             
-                            gas.Epochs = epochs
-                            gas.Epochs1 = epochs1
-                            gas.Batch_size = batch_size
+                            gas.Parameters.Epochs = epochs
+                            gas.Parameters.Epochs1 = epochs1
+                            gas.Parameters.Batch_size = batch_size
+                            gas.Parameters.transition_size = transition_size
                             
                             np.random.seed(seed)
-                            model = gas.rnn_network(layer_size,reg1,reg2,shape)
                             reg2 = 0.0005*reg2 # 0, 1 ,2 ,10
+                            model = gas.rnn_network(layer_size,reg1,reg2,shape)
                             
                             patience = np.max(epochs)
                             
                             print("Training")
                             # transitions = np.vstack([data_shaped_norm[0:4406],data_shaped_norm[0:200]])
-                            transition_size=50
                             transitions = list(range(0,transition_size))
                             for x in indexes:
                                 aux = list(range(x,x+transition_size))
                                 transitions.extend(aux)
                             
-                            
-                                
                             history = gas.train(epochs,batch_size,train_data,train_label,val_data,val_label,patience,model)
                             history2 = gas.train(epochs1,batch_size,train_data[transitions],train_label[transitions],val_data,val_label,patience,model)
                             # history = gas.train(epochs1,batch_size,data_shaped_norm[0:200],label[0:200],patience,model)
@@ -133,5 +132,14 @@ for reg2 in [int(sys.argv[0])]:
                             result_runs[1].append(np.mean(prediction_errors[1]))
                             result_runs[2].append(np.mean(prediction_errors[2]))
                             result_runs[3].append(prediction_results[-1])
-    
-gas.saveMeanResults(result_runs)
+                            
+                        s = gas.parameters_string() 
+                        
+                        print(s,abs(hash(s)))
+                        with open("results/teste.txt",'a') as arq: 
+                            arq.write(s)
+                            arq.write("\n")
+                            arq.write(str(abs(hash(s))))
+                            arq.write("\n")
+                            
+                        gas.saveMeanResults(result_runs)
