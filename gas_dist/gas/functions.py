@@ -40,6 +40,7 @@ Parameters.first_pred_time=0
 Parameters.time_delta=False
 Parameters.sqrp=False
 Parameters.flow_type="IM"
+Parameters.model_type="RNN"
 Parameters.transition_size=0
     
 
@@ -232,6 +233,7 @@ def getIndex(series,t=0):
         
 def parameters_string():
     p=";"+Parameters.flow_type #Flow Type
+    p+=";"+Parameters.model_type
     p+=";"+str(Parameters.first_pred_time) #Predicting from
     p+=";"+str(Parameters.last)
     p+=";"+str(Parameters.tr1)
@@ -251,11 +253,23 @@ def parameters_string():
     
     return p
     
-def saveRunResults(test_errors,prediction_errors,prediction_aof):
+def saveRunResults(train_errors,val_errors,trans_errors,test_errors,prediction_errors,prediction_aof):
     
     p=parameters_string()
     
     s = ""
+    s += str(train_errors[0])+";"
+    s += str(train_errors[1])+";"
+    s += str(train_errors[2])+";"
+    
+    s += str(val_errors[0])+";"
+    s += str(val_errors[1])+";"
+    s += str(val_errors[2])+";"
+    
+    s += str(trans_errors[0])+";"
+    s += str(trans_errors[1])+";"
+    s += str(trans_errors[2])+";"
+    
     s += str(np.mean(test_errors[:,0]))+";"
     s += str(np.mean(test_errors[:,1]))+";"
     s += str(np.mean(test_errors[:,2]))+";"
@@ -264,11 +278,12 @@ def saveRunResults(test_errors,prediction_errors,prediction_aof):
     s += str(np.mean(prediction_errors[:,1]))+";"
     s += str(np.mean(prediction_errors[:,2]))+";"
     
-    s += str(prediction_aof)
-    s = s + p + "\n"
+    s += str(prediction_aof)+"\n"
+    
     try:
         with open(Parameters.path+"results/"+str(abs(hash(p)))+".txt",'x') as arq: 
-            arq.write("MSE;MAE;MAPE;Pred_MSE;Pred_MAE;Pred_MAPE;AOF;PARAMETERS\n")  
+            arq.write(p+"\n")
+            arq.write("Train_MAE;Train_MSE;Train_MAPE;Val_MAE;Val_MSE;Val_MAPE;Trans_MAE;Trans_MSE;Trans_MAPE;Test_MSE;Test_MAE;Test_MAPE;Pred_MSE;Pred_MAE;Pred_MAPE;AOF\n")  
             arq.write(s)
     except:
         with open(Parameters.path+"results/"+str(abs(hash(p)))+".txt",'a') as arq:
@@ -293,7 +308,7 @@ def saveMeanResults(result_runs):
     s+="\n"
     try:
         with open(Parameters.path+"results/results.txt",'x') as arq:
-            arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp\n")
+            arq.write("num;Mean_mse;Mean_mae;Mean_mape;Mean_aof;Median_aof;Variance;sequence;model;hour;last;tr1;tr2;gauss_noise;sin_noise;train_percent;layer_size;reg1;reg2;epochs;batch_sizes;sqrp;time_delta;epochs_1;trans_size\n")
             arq.write(s)
     except:
         with open(Parameters.path+"results/results.txt",'a') as arq:

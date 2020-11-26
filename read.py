@@ -9,6 +9,7 @@ Created on Thu Sep 24 09:05:01 2020
 import pandas as pd
 import seaborn as sns
 import numpy as np
+import os
 
 def norm_aof(aof_array, aof):
     r = np.tanh((aof_array - aof)/aof)
@@ -25,84 +26,14 @@ def calc_aof(pressures,flow_rates):
     
     return aof
 
-a=pd.read_csv("results4.txt",sep=";")  
-s="Median_aof"
-a=a[a[s]>0]
-a=a[a["Mean_aof"]>0]
-
-#sns.heatmap(a[[s]])
-#aa=a[[s,"layer_size","reg1","train_percent"]]
-# sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
-
-reg1=a.reg1.unique()
-epochs=a.epochs.unique()
-layers=a.layer_size.unique()
-train=a.train_percent.unique()
-
-reg1_stats={}
-for x in reg1:
-    #print(a.loc(a["reg1"]==x))
-    reg1_stats[x]=a[a["reg1"]==x].describe()
-for i,el in reg1_stats.items():
-    print(" ")
-    print("Reg1 ",i)
-    print(el.loc[["mean","std","50%"],["Mean_aof","Var","Median_aof"]])
-print("===========================")
-
-
-
-epochs_stats={}
-for x in epochs:
-    #print(a.loc(a["reg1"]==x))
-    epochs_stats[x]=a[a["epochs"]==x].describe()
-for i,el in epochs_stats.items():
-    print(" ")
-    print("Epochs ",i)
-    print(el.loc[["mean","std","50%"],["Mean_aof","Var","Median_aof"]])
-print("===========================")
-
-
-    
-layers_stats={}
-for x in layers:
-    #print(a.loc(a["reg1"]==x))
-    layers_stats[x]=a[a["layer_size"]==x].describe()
-for i,el in layers_stats.items():
-    print(" ")
-    print("Layer size ",i)
-    print(el.loc[["mean","std","50%"],["Mean_aof","Var","Median_aof"]])
-print("===========================")
-
-
-
-train_stats={}
-for x in train:
-    #print(a.loc(a["reg1"]==x))
-    train_stats[x]=a[a["train_percent"]==x].describe()
-for i,el in train_stats.items():
-    print(" ")
-    print("Train percent ",i)
-    print(el.loc[["mean","std","50%"],["Mean_aof","Var","Median_aof"]])
-print("===========================")
-
 initial_pressure=300
 aof_rates=[200,400,600]
 aof_pressures=[249.3,192.1,120.7]
 
 aof= calc_aof(aof_pressures,aof_rates)
-
-b=np.array([x for x in a[s]])
-r= norm_aof(b,aof)
-a[s]=r
-
 tol=5/100
 lower=aof*(1-tol)
 upper=aof*(1+tol)
-lower_norm= norm_aof(lower,aof)
-upper_norm= norm_aof(727*1.1,aof)
-
-# sns.pairplot(a[[s,"layer_size","reg1","train_percent","epochs"]],hue="epochs",diag_kind="hist")
-
 
 aof_rates=[200,400]
 aof_pressures=[249.3,192.1]
@@ -122,3 +53,50 @@ for p in range(-100,300):
     
     aof_ex.append([p,calc_aof(aof_pressures,aof_rates)])
 aof_ex=np.array(aof_ex)
+
+
+# Reading the data
+a=pd.read_csv("results 19-11/results.txt",sep=";",index_col=0)  
+
+def func(x):
+    return int(x[1:-1])
+
+a["epochs"]=a["epochs"].apply(func)
+a["epochs_1"]=a["epochs_1"].apply(func)
+
+# sns.pairplot(a[["Variance","Median_aof","Mean_mse","Mean_mape"]])
+
+print(a.shape)
+# sns.pairplot(a[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
+# sns.pairplot(a[["Mean_mse","Mean_mape","trans_size","epochs_1","epochs"]],palette="tab10")
+
+# a=a.loc[(a["Mean_aof"]>0) & (a["Mean_aof"]<250)]
+# a=a[(a["Median_aof"]>0) & (a["Median_aof"]<250)]
+
+# sns.pairplot(a[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
+# sns.pairplot(a[["Mean_mse","Mean_mape","trans_size","epochs_1","epochs"]],palette="tab10")
+
+s = a["Variance"].idxmin()
+b = pd.read_csv("results 19-11/520964197112933607.txt",skiprows=[0],header=None,sep=";")
+c = pd.read_csv("results 19-11/"+str(s)+".txt",sep=";")
+
+lista = os.listdir("results 19-11/")
+lista.pop()
+
+comp = pd.read_csv("results 19-11/"+lista[-1],skiprows=[0],header=None,sep=";")
+lista.pop()
+
+for s in lista:
+    aux = pd.read_csv("results 19-11/"+s,skiprows=[0],header=None,sep=";")
+    comp = pd.concat([comp,aux])
+    
+sns.pairplot(comp[[0,1,2,3,4,5,6]])
+# print(a.loc[5252807442750585345])
+
+# a=a.loc[(a["Mean_aof"]>100) & (a["Mean_aof"]<150)]
+# a=a[(a["Median_aof"]>100) & (a["Median_aof"]<150)]
+
+for x in ["trans_size","epochs_1","epochs"]:
+    print(a[x].value_counts())
+
+# sns.pairplot(a[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
