@@ -25,7 +25,7 @@ def calc_aof(pressures,flow_rates):
     
     return aof
 
-a=pd.read_csv("results.txt",sep=";",index_col=0)  
+a=pd.read_csv("results1.txt",sep=";")  
 s="Median_aof"
 a=a[a["Median_aof"]>0]
 a=a[a["Mean_aof"]>0]

@@ -43,7 +43,7 @@ gas.Parameters.last=2
 # gas.sqrp = False
 
 gas.Parameters.flow_type="IM"
-gas.Parameters.model_type="RNN"
+gas.Parameters.model_type="FF"
 data = gas.read("gas_im_extendido_1.txt")
 data_og = data.copy()
 
@@ -90,11 +90,11 @@ shape=(data_shaped.shape[1], data_shaped.shape[2]-1)
 
 
 # for reg2 in [int(sys.argv[1])]:
-for reg2 in [0,2]:
-    for layer_size in [16]:
+for reg2 in [0,2,10]:
+    for layer_size in [16,24,32]:
         for epochs in [[150],[200],[250]]:
             for epochs1 in [[0]]:
-                for transition_size in [50]:
+                for transition_size in [0]:
                     for batch_size in [[32]]:
                         result_runs = [[],[],[],[]]
                         for seed in range(5):
@@ -107,7 +107,7 @@ for reg2 in [0,2]:
                             np.random.seed(seed)
                             reg = 0.0005*reg2 # 0, 1 ,2 ,10
                             # model = gas.rnn_network(layer_size,reg1,reg,shape)
-                            model = gas.rnn_network(layer_size,reg1,reg,shape)                            
+                            model = gas.feedfoward_network(layer_size,reg1,reg,shape)                            
                             
                             patience = np.max(epochs)
                             
@@ -125,8 +125,10 @@ for reg2 in [0,2]:
                             history = history.to_numpy()
                             train_error = history[-1,1:4]
                             
+                            val_error = history[-1,5:8]
+                            
                             history2 = history2.to_numpy()
-                            trans_error = history[-1,1:4]
+                            trans_error = [0,0,0]
                             
                             print("Testing")
                             test_results, test_errors = gas.predict(data_shaped_norm[0:4406,:,1:],label[0:4406],model,data_stats)
@@ -134,7 +136,8 @@ for reg2 in [0,2]:
                             print("Predicting")
                             prediction_results,prediction_errors = gas.predict(predict_data[:,:,1:],predict_label,model ,data_stats)
                             
-                            gas.saveRunResults(test_errors,prediction_errors,prediction_results[-1])
+                            gas.Parameters.time_delta = -1
+                            gas.saveRunResults(train_error,val_error,trans_error,test_errors,prediction_errors,prediction_results[-1])
                             
                             result_runs[0].append(np.mean(prediction_errors[0]))
                             result_runs[1].append(np.mean(prediction_errors[1]))
