@@ -36,9 +36,9 @@ gas.Parameters.last=2
 # gas.sqrp = False
 
 
-gas.Parameters.flow_type = "IM"
-gas.Parameters.model_type="RNN"
-data = gas.read("gas_im_extendido_1.txt")
+gas.Parameters.flow_type = "IS"
+gas.Parameters.model_type="RNN_fs"
+data = gas.read("gas_si_extendido_1.txt")
 data_og = data.copy()
 
 transition_size = 0

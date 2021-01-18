@@ -35,21 +35,25 @@ gas.Parameters.last=2
 # gas.time_delta=True
 # gas.sqrp = False
 
-gas.Parameters.flow_type="IS_fs3"
-gas.Parameters.model_type="RNN"
-data = gas.read("gas_si_extendido_1.txt")
+
+gas.Parameters.flow_type = "DS"
+gas.Parameters.model_type="RNN_fs"
+data = gas.read("gas_sd_extendido_1.txt")
 data_og = data.copy()
 
+transition_size = 0
+
 # for reg2 in [int(sys.argv[1])]:
-for epochs in [[50],[75],[100]]:
-    for reg2 in [2,10,20]:
-        for layer_size in [25,20,30]:
+for layer_size in [25,30,35]:
+    for epochs in [[75],[100],[125]]:
+        for reg2 in [1,2,10,20]:
             for reg1 in [0]:
-                for transition_size in [0]:
+                for noise in [int(sys.argv[1])]:
                     for batch_size in [[8]]:
                         result_runs = [[],[],[],[]]
                         for seed in range(10):
                             np.random.seed(seed)
+                            gas.seed(seed)
 
                             data = gas.sample(data_og)
                             
@@ -68,8 +72,8 @@ for epochs in [[50],[75],[100]]:
                             data = gas.calc_square_pressures(data)
                             #data = gas.calc_square_pressures(data)
                             
-                            data = gas.gauss_noise(data, 0.01)
-                            gas.Parameters.gauss_noise = 0.01
+                            data = gas.gauss_noise(data, noise/100)
+                            gas.Parameters.gauss_noise = noise
                             
                             data_stats = gas.stats(data[known_indexes])
                             data_norm = gas.standarize(data,data_stats)

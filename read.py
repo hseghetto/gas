@@ -68,7 +68,7 @@ aof_ex=np.array(aof_ex)
 # Results = pd.read_csv("results 09-12/results.txt",sep=";",index_col=0)
 # Results = pd.read_csv("results 11-12/results.txt",sep=";",index_col=0)  
 
-Results = pd.read_csv("results/results.txt",sep=";",index_col=0)
+Results = pd.read_csv("results 05-01/results.txt",sep=";",index_col=0)
 Results_copy = Results.copy()
 
 Results.drop(["hour","last","tr1","tr2"],axis=1,inplace=True)
@@ -126,7 +126,6 @@ def erro_aof(x):
     return x
 
 Results = Results.apply(erro_press, axis=1)
-Results = Results.drop( Results.loc[(Results.Median_aof<0)|(Results.Mean_aof<0)].index)
 Results = Results.apply(erro_aof, axis=1)
 
 def check(x, s):
@@ -137,13 +136,19 @@ Results_IM = Results.loc[Results["sequence"].apply(check, s="IM")]
 Results_SD = Results.loc[Results["sequence"].apply(check, s="DS")]
 Results_SI = Results.loc[Results["sequence"].apply(check, s="IS")]
 
+#transforming epochs to int
 Results["epochs"]=Results["epochs"].apply(lambda x: int(x[1:-1]))
 Results["epochs_1"]=Results["epochs_1"].apply(lambda x: int(x[1:-1]))
+
+#removing negative pressure results
+Results = Results.drop( Results.loc[(Results.Median_aof<0)|(Results.Mean_aof<0)].index)
+
 
 # sns.pairplot(Results[["reg2","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
 # sns.pairplot(Results[["layer_size","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
 sns.pairplot(Results[["epochs","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
 
+#renaming sequences
 Results["sequence"] = Results["sequence"].apply(lambda x: x[0:2])
 
 # sns.pairplot(Results[["reg2","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sequence"]],hue = "sequence")

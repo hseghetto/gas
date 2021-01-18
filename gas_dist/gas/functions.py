@@ -43,7 +43,8 @@ Parameters.flow_type="IM"
 Parameters.model_type="RNN"
 Parameters.transition_size=0
     
-
+def seed(seed):
+    np.random.seed(seed)
 
 def read(file):
     a=pd.read_csv(Parameters.path+"data/"+file,sep=" ")
