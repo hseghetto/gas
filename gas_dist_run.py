@@ -36,22 +36,22 @@ gas.Parameters.last=2
 # gas.sqrp = False
 
 
-gas.Parameters.flow_type = "IM"
+gas.Parameters.flow_type = "DS"
 gas.Parameters.model_type="RNN"
-data = gas.read("gas_im_extendido_1.txt")
+data = gas.read("gas_sd_extendido_1.txt")
 data_og = data.copy()
 
 transition_size = 0
 
 # for reg2 in [int(sys.argv[1])]:
-for layer_size in [25,30,35]:
-    for epochs in [[75],[100],[125]]:
-        for reg2 in [1,2,10,20]:
+for layer_size in [25]:
+    for epochs in [[75]]:
+        for reg2 in [0.1]:
             for reg1 in [0]:
-                for noise in [int(sys.argv[1])]:
+                for noise in [5,10]:
                     for batch_size in [[8]]:
                         result_runs = [[],[],[],[]]
-                        for seed in range(10):
+                        for seed in range(100):
                             np.random.seed(seed)
                             gas.seed(seed)
 
@@ -121,13 +121,15 @@ for layer_size in [25,30,35]:
                             
                             # history2 = history2.to_numpy()
                             # trans_error = history2[-1,5:8]                            
-                            trans_error = [0,0,0]
+                            
                             
                             print("Testing")
                             test_results, test_errors = gas.predict(data_shaped_norm[0:1],label[0:1],model,data_stats)
                             
+                            prediction_results,prediction_errors = gas.predict(train_data,train_label,model ,data_stats)
                             print("Predicting")
                             prediction_results,prediction_errors = gas.predict(predict_data,predict_label,model ,data_stats)
+                            trans_error = prediction_errors
                             
                             gas.saveRunResults(train_error,val_error,trans_error,test_errors,prediction_errors,prediction_results[-1])
                             

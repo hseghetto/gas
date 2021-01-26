@@ -68,7 +68,8 @@ aof_ex=np.array(aof_ex)
 # Results = pd.read_csv("results 09-12/results.txt",sep=";",index_col=0)
 # Results = pd.read_csv("results 11-12/results.txt",sep=";",index_col=0)  
 
-Results = pd.read_csv("results 05-01/results.txt",sep=";",index_col=0)
+path = "results 05-01/"
+Results = pd.read_csv(path+"results.txt",sep=";",index_col=0)
 Results_copy = Results.copy()
 
 Results.drop(["hour","last","tr1","tr2"],axis=1,inplace=True)
@@ -146,57 +147,67 @@ Results = Results.drop( Results.loc[(Results.Median_aof<0)|(Results.Mean_aof<0)]
 
 # sns.pairplot(Results[["reg2","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
 # sns.pairplot(Results[["layer_size","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
-sns.pairplot(Results[["epochs","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
+# sns.pairplot(Results[["epochs","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sqrp"]],hue = "sqrp")
 
 #renaming sequences
 Results["sequence"] = Results["sequence"].apply(lambda x: x[0:2])
 
 # sns.pairplot(Results[["reg2","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sequence"]],hue = "sequence")
 # sns.pairplot(Results[["layer_size","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sequence"]],hue = "sequence")
-sns.pairplot(Results[["epochs","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sequence"]],hue = "sequence")
+# sns.pairplot(Results[["epochs","Median_p_error","Mean_p_error","Median_a_error","Mean_a_error","sequence"]],hue = "sequence")
 
-'''
-print("====="*20)
-print("full dataset")
-print(Results.shape)
-sns.pairplot(Results[["Variance","Median_aof","Mean_aof","Mean_mse","Mean_mape"]])
-plt.show()
-sns.pairplot(Results[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
-plt.show()
-print("====="*20)
+FullSet = 0
+_,_,folder = next(os.walk(path))
+folder.pop()
 
-print("====="*20)
-print("0<aof<250")
-Results=Results.loc[(Results["Mean_aof"]>0) & (Results["Mean_aof"]<250)]
-Results=Results[(Results["Median_aof"]>0) & (Results["Median_aof"]<250)]
+print(".")
+df = pd.read_csv(path+folder[-1],sep=";",index_col=None,skiprows=(0),header =1)
+FullSet = df
+folder.pop()
 
-sns.pairplot(Results[["Variance","Median_aof","Mean_aof","Mean_mse","Mean_mape"]])
-plt.show()
-sns.pairplot(Results[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
-plt.show()
-print("====="*20)
+for filename in folder:
+    df = pd.read_csv(path+filename,sep=";",index_col=None,skiprows=(0),header =1)
+    FullSet = FullSet.append(df)        
+        
+# print("====="*20)
+# print("full dataset")
+# print(Results.shape)
+# sns.pairplot(Results[["Variance","Median_aof","Mean_aof","Mean_mse","Mean_mape"]])
+# plt.show()
+# sns.pairplot(Results[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
+# plt.show()
+# print("====="*20)
 
-print("====="*20)
-print("100<aof<150")
-Results=Results.loc[(Results["Mean_aof"]>100) & (Results["Mean_aof"]<150)]
-Results=Results[(Results["Median_aof"]>100) & (Results["Median_aof"]<150)]
+# print("====="*20)
+# print("0<aof<250")
+# Results=Results.loc[(Results["Mean_aof"]>0) & (Results["Mean_aof"]<250)]
+# Results=Results[(Results["Median_aof"]>0) & (Results["Median_aof"]<250)]
 
 # sns.pairplot(Results[["Variance","Median_aof","Mean_aof","Mean_mse","Mean_mape"]])
 # plt.show()
 # sns.pairplot(Results[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
 # plt.show()
-print("====="*20)
+# print("====="*20)
 
-# =========================
+# print("====="*20)
+# print("100<aof<150")
+# Results=Results.loc[(Results["Mean_aof"]>100) & (Results["Mean_aof"]<150)]
+# Results=Results[(Results["Median_aof"]>100) & (Results["Median_aof"]<150)]
+
+# sns.pairplot(Results[["Variance","Median_aof","Mean_aof","Mean_mse","Mean_mape"]])
+# plt.show()
+# sns.pairplot(Results[["Variance","Median_aof","trans_size","epochs_1","epochs"]])
+# plt.show()
+# print("====="*20)
+
 # lista = os.listdir("Results/")
 # lista.pop()
-
 # comp = pd.read_csv("Results/"+lista[-1],skiprows=[0],sep=";")
 # lista.pop()
 
 # for s in lista:
 #     aux = pd.read_csv("Results/"+s,skiprows=[0],sep=";")
-#     comp = pd.concat([comp,aux])
+#     comp = pd.concat([comp,aux]) 
     
 # sns.pairplot(comp[["Train_MAE","Train_MSE","Train_MAPE"]])
 # comp = comp.loc[(comp.AOF>0) &(comp.AOF<250)]
@@ -210,4 +221,4 @@ print("====="*20)
 #             sns.jointplot(comp[i],comp[j],kind="reg",stat_func=r2)
 #             pass
 #         pass
-'''
+
