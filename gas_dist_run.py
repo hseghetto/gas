@@ -19,7 +19,7 @@ import time as tm
 import gas
 
 # pip install -e <os.getcwd>/gas_dist
-# gas.path = os.getcwd()
+gas.path = "/home/math1656/gas2/gas/"
 gas.Parameters.initial_pressure=300
 gas.Parameters.last=2
 
@@ -44,11 +44,11 @@ data_og = data.copy()
 transition_size = 0
 
 # for reg2 in [int(sys.argv[1])]:
-for layer_size in [25]:
-    for epochs in [[75]]:
+for layer_size in [30]:
+    for epochs in [[100]]:
         for reg2 in [0.1]:
             for reg1 in [0]:
-                for noise in [5,10]:
+                for noise in [0,1,2]:
                     for batch_size in [[8]]:
                         result_runs = [[],[],[],[]]
                         for seed in range(100):
